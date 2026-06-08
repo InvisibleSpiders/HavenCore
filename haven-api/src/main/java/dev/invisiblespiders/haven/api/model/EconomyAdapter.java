@@ -13,7 +13,7 @@ public interface EconomyAdapter {
     /** Returns true and deducts if sufficient balance. */
     boolean withdraw(UUID uuid, double amount);
 
-    void deposit(UUID uuid, double amount);
+    boolean deposit(UUID uuid, double amount);
 
     String format(double amount);
 }

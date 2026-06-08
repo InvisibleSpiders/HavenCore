@@ -35,9 +35,10 @@ public class EconomyServiceImpl implements HavenEconomyService {
     }
 
     @Override
-    public void deposit(UUID uuid, double amount) {
-        money.deposit(uuid, amount);
-        eventBus.publish(new HavenEconomyTransactionEvent(uuid, amount, HavenEconomyTransactionEvent.Type.DEPOSIT));
+    public boolean deposit(UUID uuid, double amount) {
+        boolean ok = money.deposit(uuid, amount);
+        if (ok) eventBus.publish(new HavenEconomyTransactionEvent(uuid, amount, HavenEconomyTransactionEvent.Type.DEPOSIT));
+        return ok;
     }
 
     @Override
