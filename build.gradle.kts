@@ -14,6 +14,7 @@ allprojects {
         maven("https://repo.extendedclip.com/content/repositories/placeholderapi/")
         // VaultUnlockedAPI + LuckPerms snapshots
         maven("https://repo.codemc.io/repository/maven-public/")
+        maven("https://repo.codemc.io/repository/creatorfromhell/")
         // JitPack fallback for misc deps
         maven("https://jitpack.io")
     }
