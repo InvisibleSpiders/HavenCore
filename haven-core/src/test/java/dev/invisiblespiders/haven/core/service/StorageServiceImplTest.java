@@ -3,6 +3,7 @@ package dev.invisiblespiders.haven.core.service;
 import dev.invisiblespiders.haven.api.event.HavenEvent;
 import dev.invisiblespiders.haven.api.model.VirtualInventory;
 import dev.invisiblespiders.haven.api.service.HavenEventBus;
+import dev.invisiblespiders.haven.core.config.StorageSettings;
 import dev.invisiblespiders.haven.core.gui.VirtualInventoryHolder;
 import dev.invisiblespiders.haven.core.repository.VirtualInventoryRepository;
 import net.kyori.adventure.text.Component;
@@ -17,7 +18,10 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
+import java.sql.SQLException;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletionException;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -25,6 +29,49 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class StorageServiceImplTest {
+
+    @Test
+    void createWithoutRowsUsesConfiguredDefaultRows() throws SQLException {
+        VirtualInventoryRepository repo = mock(VirtualInventoryRepository.class);
+        StorageServiceImpl service = newService(mock(Plugin.class), repo, new StorageSettings(4, 0));
+        UUID ownerUuid = UUID.randomUUID();
+
+        VirtualInventory created = service.create(ownerUuid, "Workshop").join();
+
+        assertEquals(4, created.getRows());
+        ArgumentCaptor<VirtualInventory> inventoryCaptor = ArgumentCaptor.forClass(VirtualInventory.class);
+        verify(repo).save(inventoryCaptor.capture());
+        assertEquals(4, inventoryCaptor.getValue().getRows());
+    }
+
+    @Test
+    void createRejectsRowsOutsideInventoryBounds() {
+        StorageServiceImpl service = newService(mock(Plugin.class));
+
+        IllegalArgumentException error = assertThrows(
+            IllegalArgumentException.class,
+            () -> service.create(UUID.randomUUID(), "Too Large", 7)
+        );
+
+        assertTrue(error.getMessage().contains("between 1 and 6"));
+    }
+
+    @Test
+    void createFailsWhenOwnerHasReachedConfiguredInventoryLimit() throws SQLException {
+        VirtualInventoryRepository repo = mock(VirtualInventoryRepository.class);
+        UUID ownerUuid = UUID.randomUUID();
+        when(repo.findByOwner(ownerUuid)).thenReturn(List.of(inventory(), inventory()));
+        StorageServiceImpl service = newService(mock(Plugin.class), repo, new StorageSettings(3, 2));
+
+        CompletionException error = assertThrows(
+            CompletionException.class,
+            () -> service.create(ownerUuid, "Overflow", 3).join()
+        );
+
+        assertInstanceOf(IllegalStateException.class, error.getCause());
+        assertTrue(error.getCause().getMessage().contains("maximum"));
+        verify(repo, never()).save(any(VirtualInventory.class));
+    }
 
     @Test
     void openSchedulesInventoryWorkWhenCalledOffPrimaryThread() {
@@ -84,12 +131,18 @@ class StorageServiceImplTest {
     }
 
     private static StorageServiceImpl newService(Plugin plugin) {
+        return newService(plugin, mock(VirtualInventoryRepository.class), StorageSettings.defaults());
+    }
+
+    private static StorageServiceImpl newService(Plugin plugin, VirtualInventoryRepository repo,
+                                                 StorageSettings settings) {
         return new StorageServiceImpl(
-            mock(VirtualInventoryRepository.class),
+            repo,
             new NoOpEventBus(),
             Runnable::run,
             plugin,
-            Logger.getLogger(StorageServiceImplTest.class.getName())
+            Logger.getLogger(StorageServiceImplTest.class.getName()),
+            settings
         );
     }
 
