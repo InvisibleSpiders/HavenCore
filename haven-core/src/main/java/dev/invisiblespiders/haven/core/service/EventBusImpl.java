@@ -7,10 +7,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class EventBusImpl implements HavenEventBus {
 
     private final Map<Class<?>, List<Handler<?>>> handlers = new ConcurrentHashMap<>();
+    private final Logger logger;
+
+    public EventBusImpl() {
+        this(Logger.getLogger(EventBusImpl.class.getName()));
+    }
+
+    public EventBusImpl(Logger logger) {
+        this.logger = logger;
+    }
 
     @Override
     public <T extends HavenEvent> void subscribe(Class<T> type, Handler<T> handler) {
@@ -32,9 +43,7 @@ public class EventBusImpl implements HavenEventBus {
             try {
                 ((Handler<T>) h).handle(event);
             } catch (Exception e) {
-                // Isolate handler failures so one bad subscriber can't block others
-                System.err.println("[HavenCore] EventBus handler threw: " + e.getMessage());
-                e.printStackTrace();
+                logger.log(Level.WARNING, "EventBus handler failed for " + event.getClass().getName(), e);
             }
         }
     }
