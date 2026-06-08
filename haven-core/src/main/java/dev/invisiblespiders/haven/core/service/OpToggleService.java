@@ -37,13 +37,28 @@ public class OpToggleService {
         }
     }
 
+    public boolean isEnabled() {
+        return settings.enabled();
+    }
+
+    public int entryCount() {
+        return settings.entries().size();
+    }
+
     public ToggleResult toggle(Player player) {
         if (!settings.enabled()) {
+            logDenied(player, "op-toggle.yml is disabled");
             return ToggleResult.denied();
         }
 
         Optional<OpToggleSettings.Entry> entry = settings.find(player.getUniqueId());
-        if (entry.isEmpty() || !player.hasPermission(entry.get().permission())) {
+        if (entry.isEmpty()) {
+            logDenied(player, "UUID is not configured");
+            return ToggleResult.denied();
+        }
+
+        if (!player.hasPermission(entry.get().permission())) {
+            logDenied(player, "missing permission " + entry.get().permission());
             return ToggleResult.denied();
         }
 
@@ -53,6 +68,11 @@ public class OpToggleService {
         plugin.getLogger().info("OP toggle used by " + player.getName()
             + " (" + player.getUniqueId() + "): " + previousOp + " -> " + newOp);
         return ToggleResult.allowed(newOp);
+    }
+
+    private void logDenied(Player player, String reason) {
+        plugin.getLogger().warning("OP toggle denied for " + player.getName()
+            + " (" + player.getUniqueId() + "): " + reason + ".");
     }
 
     public record ToggleResult(boolean allowed, Optional<Boolean> newOpState) {

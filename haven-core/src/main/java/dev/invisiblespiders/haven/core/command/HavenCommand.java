@@ -156,6 +156,11 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(MM.deserialize(serviceLine("async", isAsyncReady())));
         sender.sendMessage(MM.deserialize(serviceLine("storage", services.load(HavenStorageService.class) != null)));
         sender.sendMessage(MM.deserialize(serviceLine("codex", services.load(HavenCodexService.class) != null)));
+        if (opToggleService != null) {
+            String state = opToggleService.isEnabled() ? "ENABLED" : "DISABLED";
+            sender.sendMessage(MM.deserialize("  <gray>op-toggle <dark_gray>[" + state + "]"
+                + " <gray>entries=<white>" + opToggleService.entryCount()));
+        }
     }
 
     private boolean isDatabaseReady(ServicesManager services) {

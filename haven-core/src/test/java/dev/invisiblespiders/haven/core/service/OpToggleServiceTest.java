@@ -39,18 +39,49 @@ class OpToggleServiceTest {
     }
 
     @Test
-    void rejectsWhenFeatureDisabled() {
+    void reloadRegistersNewlyConfiguredPermissions() {
+        UUID firstUuid = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID secondUuid = UUID.fromString("00000000-0000-0000-0000-000000000002");
+        Plugin plugin = mockPlugin();
+        PluginManager pluginManager = plugin.getServer().getPluginManager();
+        when(pluginManager.getPermission("havencore.toggleop.b7c91")).thenReturn(null);
+        OpToggleService service = new OpToggleService(plugin, settings(true, entry("First", firstUuid, "A5B27")));
+
+        service.reload(settings(true, entry("Second", secondUuid, "B7C91")));
+
+        ArgumentCaptor<Permission> permissionCaptor = ArgumentCaptor.forClass(Permission.class);
+        verify(pluginManager).addPermission(permissionCaptor.capture());
+        assertEquals("havencore.toggleop.b7c91", permissionCaptor.getValue().getName());
+    }
+
+    @Test
+    void reportsCurrentSettingsForStatusOutput() {
         UUID uuid = UUID.fromString("00000000-0000-0000-0000-000000000001");
         OpToggleService service = new OpToggleService(
             mockPlugin(),
+            settings(true, entry("InvisibleSpiders", uuid, "A5B27"))
+        );
+
+        assertTrue(service.isEnabled());
+        assertEquals(1, service.entryCount());
+    }
+
+    @Test
+    void rejectsWhenFeatureDisabled() {
+        UUID uuid = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        Logger logger = mock(Logger.class);
+        OpToggleService service = new OpToggleService(
+            mockPlugin(logger),
             settings(false, entry("InvisibleSpiders", uuid, "A5B27"))
         );
         Player player = mockPlayer(uuid, true, false);
+        when(player.getName()).thenReturn("InvisibleSpiders");
 
         OpToggleService.ToggleResult result = service.toggle(player);
 
         assertFalse(result.allowed());
         verify(player, never()).setOp(anyBoolean());
+        verify(logger).warning(contains("disabled"));
     }
 
     @Test
@@ -64,6 +95,23 @@ class OpToggleServiceTest {
 
         assertFalse(service.toggle(mockPlayer(otherUuid, true, false)).allowed());
         assertFalse(service.toggle(mockPlayer(allowedUuid, false, false)).allowed());
+    }
+
+    @Test
+    void logsMissingPermissionDenialReason() {
+        UUID uuid = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        Logger logger = mock(Logger.class);
+        OpToggleService service = new OpToggleService(
+            mockPlugin(logger),
+            settings(true, entry("InvisibleSpiders", uuid, "A5B27"))
+        );
+        Player player = mockPlayer(uuid, false, false);
+        when(player.getName()).thenReturn("InvisibleSpiders");
+
+        OpToggleService.ToggleResult result = service.toggle(player);
+
+        assertFalse(result.allowed());
+        verify(logger).warning(contains("missing permission havencore.toggleop.a5b27"));
     }
 
     @Test
@@ -84,8 +132,12 @@ class OpToggleServiceTest {
     }
 
     private static Plugin mockPlugin() {
+        return mockPlugin(mock(Logger.class));
+    }
+
+    private static Plugin mockPlugin(Logger logger) {
         Plugin plugin = mock(Plugin.class, RETURNS_DEEP_STUBS);
-        when(plugin.getLogger()).thenReturn(mock(Logger.class));
+        when(plugin.getLogger()).thenReturn(logger);
         return plugin;
     }
 

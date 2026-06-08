@@ -30,6 +30,25 @@ class OpToggleSettingsTest {
     }
 
     @Test
+    void readsSingleRootPlayerEntry() {
+        UUID uuid = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        YamlConfiguration config = new YamlConfiguration();
+        config.set("enabled", true);
+        config.set("player", uuid.toString());
+        config.set("code", "2410a");
+
+        OpToggleSettings settings = OpToggleSettings.from(config);
+
+        assertTrue(settings.enabled());
+        assertEquals(1, settings.entries().size());
+        OpToggleSettings.Entry entry = settings.find(uuid).orElseThrow();
+        assertEquals("player", entry.name());
+        assertEquals(uuid, entry.uuid());
+        assertEquals("2410a", entry.code());
+        assertEquals("havencore.toggleop.2410a", entry.permission());
+    }
+
+    @Test
     void ignoresEntriesWithoutValidUuidOrFiveCharacterCode() {
         YamlConfiguration config = new YamlConfiguration();
         config.set("enabled", true);

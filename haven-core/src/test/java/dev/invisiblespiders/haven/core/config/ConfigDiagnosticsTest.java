@@ -31,20 +31,78 @@ class ConfigDiagnosticsTest {
         YamlConfiguration hooks = new YamlConfiguration();
         hooks.set("hooks.luckperms.enabled", true);
 
+        YamlConfiguration opToggle = new YamlConfiguration();
+        opToggle.set("enabled", true);
+        opToggle.set("players.BadUuid.uuid", "not-a-uuid");
+        opToggle.set("players.BadUuid.code", "A5B27");
+        opToggle.set("players.BadCode.uuid", "00000000-0000-0000-0000-000000000001");
+        opToggle.set("players.BadCode.code", "LONGER");
+        opToggle.set("players.DuplicateOne.uuid", "00000000-0000-0000-0000-000000000002");
+        opToggle.set("players.DuplicateOne.code", "B7C91");
+        opToggle.set("players.DuplicateTwo.uuid", "00000000-0000-0000-0000-000000000003");
+        opToggle.set("players.DuplicateTwo.code", "B7C91");
+
         List<LogRecord> records = new ArrayList<>();
-        ConfigDiagnostics.logWarnings(database, economy, storage, hooks, logger(records));
+        ConfigDiagnostics.logWarnings(database, economy, storage, hooks, opToggle, logger(records));
 
         List<String> messages = records.stream()
             .filter(record -> record.getLevel() == Level.WARNING)
             .map(LogRecord::getMessage)
             .toList();
 
-        assertEquals(5, messages.size());
+        assertEquals(8, messages.size());
         assertTrue(messages.stream().anyMatch(message -> message.contains("database.yml type 'postgres'")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("preferred-adapter 'barter'")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("item-currency.material 'NOT_A_MATERIAL'")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("storage.yml defaults.rows")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("hooks.luckperms.enabled")));
+        assertTrue(messages.stream().anyMatch(message -> message.contains("op-toggle.yml players.BadUuid.uuid")));
+        assertTrue(messages.stream().anyMatch(message -> message.contains("op-toggle.yml players.BadCode.code")));
+        assertTrue(messages.stream().anyMatch(message -> message.contains("op-toggle.yml code 'B7C91'")));
+    }
+
+    @Test
+    void warnsWhenOpToggleIsEnabledWithoutValidPlayers() {
+        YamlConfiguration database = new YamlConfiguration();
+        database.set("type", "sqlite");
+        YamlConfiguration economy = new YamlConfiguration();
+        YamlConfiguration storage = new YamlConfiguration();
+        storage.set("defaults.rows", 3);
+        YamlConfiguration hooks = new YamlConfiguration();
+        hooks.set("hooks.luckperms.enabled", false);
+        YamlConfiguration opToggle = new YamlConfiguration();
+        opToggle.set("enabled", true);
+
+        List<LogRecord> records = new ArrayList<>();
+        ConfigDiagnostics.logWarnings(database, economy, storage, hooks, opToggle, logger(records));
+
+        List<String> messages = records.stream()
+            .filter(record -> record.getLevel() == Level.WARNING)
+            .map(LogRecord::getMessage)
+            .toList();
+
+        assertEquals(1, messages.size());
+        assertTrue(messages.get(0).contains("op-toggle.yml is enabled but has no valid players"));
+    }
+
+    @Test
+    void acceptsRootOpTogglePlayerEntry() {
+        YamlConfiguration database = new YamlConfiguration();
+        database.set("type", "sqlite");
+        YamlConfiguration economy = new YamlConfiguration();
+        YamlConfiguration storage = new YamlConfiguration();
+        storage.set("defaults.rows", 3);
+        YamlConfiguration hooks = new YamlConfiguration();
+        hooks.set("hooks.luckperms.enabled", false);
+        YamlConfiguration opToggle = new YamlConfiguration();
+        opToggle.set("enabled", true);
+        opToggle.set("player", "00000000-0000-0000-0000-000000000001");
+        opToggle.set("code", "2410a");
+
+        List<LogRecord> records = new ArrayList<>();
+        ConfigDiagnostics.logWarnings(database, economy, storage, hooks, opToggle, logger(records));
+
+        assertTrue(records.isEmpty());
     }
 
     @Test

@@ -19,17 +19,30 @@ public record OpToggleSettings(boolean enabled, List<Entry> entries) {
 
     public static OpToggleSettings from(FileConfiguration config) {
         List<Entry> entries = new ArrayList<>();
+        Entry rootEntry = rootEntry(config);
+        if (rootEntry != null) {
+            entries.add(rootEntry);
+        }
         ConfigurationSection players = config.getConfigurationSection("players");
         if (players != null) {
             for (String name : players.getKeys(false)) {
                 UUID uuid = parseUuid(players.getString(name + ".uuid"));
                 String code = players.getString(name + ".code", "");
-                if (uuid != null && code.matches(CODE_PATTERN)) {
+                if (uuid != null && isValidCode(code)) {
                     entries.add(new Entry(name, uuid, code));
                 }
             }
         }
         return new OpToggleSettings(config.getBoolean("enabled", false), entries);
+    }
+
+    private static Entry rootEntry(FileConfiguration config) {
+        UUID uuid = parseUuid(config.getString("player", config.getString("uuid")));
+        String code = config.getString("code", "");
+        if (uuid == null || !isValidCode(code)) {
+            return null;
+        }
+        return new Entry("player", uuid, code);
     }
 
     public Optional<Entry> find(UUID uuid) {
@@ -47,6 +60,10 @@ public record OpToggleSettings(boolean enabled, List<Entry> entries) {
         } catch (IllegalArgumentException e) {
             return null;
         }
+    }
+
+    public static boolean isValidCode(String value) {
+        return value != null && value.matches(CODE_PATTERN);
     }
 
     public record Entry(String name, UUID uuid, String code) {
