@@ -37,7 +37,7 @@ public class ItemEconomyAdapter implements EconomyAdapter {
     public boolean withdraw(UUID uuid, double amount) { return false; }
 
     @Override
-    public void deposit(UUID uuid, double amount) {}
+    public boolean deposit(UUID uuid, double amount) { return false; }
 
     @Override
     public String format(double amount) { return (int) amount + "x " + material.name(); }
