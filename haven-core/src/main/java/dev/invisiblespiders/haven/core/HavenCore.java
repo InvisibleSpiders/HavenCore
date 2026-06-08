@@ -45,7 +45,7 @@ public class HavenCore extends JavaPlugin {
         Executor asyncExecutor = ForkJoinPool.commonPool();
 
         // ── Core services ────────────────────────────────────────────────────
-        EventBusImpl    eventBus    = new EventBusImpl();
+        EventBusImpl    eventBus    = new EventBusImpl(getLogger());
         CooldownServiceImpl cooldowns = new CooldownServiceImpl();
         hookRegistry = new HookRegistryImpl(eventBus, getLogger());
         ItemRegistryImpl itemRegistry = new ItemRegistryImpl(this);
