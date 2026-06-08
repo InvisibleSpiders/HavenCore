@@ -11,7 +11,6 @@ dependencies {
     // Shaded into the final JAR
     implementation("com.zaxxer:HikariCP:5.1.0")
     implementation("org.flywaydb:flyway-core:10.22.0")
-    implementation("org.flywaydb:flyway-database-sqlite:10.22.0")
     implementation("org.flywaydb:flyway-mysql:10.22.0")
     implementation("org.xerial:sqlite-jdbc:3.47.0.0")
     runtimeOnly("com.mysql:mysql-connector-j:9.1.0")
