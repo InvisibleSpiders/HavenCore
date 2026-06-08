@@ -16,7 +16,7 @@ public interface HavenStorageService {
 
     CompletableFuture<List<VirtualInventory>> getByOwner(UUID ownerUuid);
 
-    /** Opens the virtual inventory GUI for the player. Must be called on main thread. */
+    /** Opens the virtual inventory GUI for the player, scheduling onto the main thread when needed. */
     void open(Player player, VirtualInventory inventory);
 
     CompletableFuture<Void> save(VirtualInventory inventory);
