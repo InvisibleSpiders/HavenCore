@@ -34,19 +34,19 @@ public class HavenCore extends JavaPlugin {
     public void onEnable() {
         instance = this;
 
-        //  Config 
+        // Config
         configManager = new ConfigManager(this);
         configManager.load();
 
-        //  Database 
+        // Database
         HikariConfig hikariConfig = configManager.buildHikariConfig();
         dataSource = new DataSourceImpl(getLogger());
         dataSource.init(hikariConfig);
 
-        //  Async executor (owned thread pool) 
+        // Async executor (owned thread pool)
         asyncExecutor = HavenAsyncExecutors.create(2);
 
-        //  Core services 
+        // Core services
         EventBusImpl    eventBus    = new EventBusImpl(getLogger());
         CooldownServiceImpl cooldowns = new CooldownServiceImpl();
         hookRegistry = new HookRegistryImpl(eventBus, getLogger());
@@ -56,13 +56,13 @@ public class HavenCore extends JavaPlugin {
         );
         NotificationServiceImpl notifications = new NotificationServiceImpl(configManager);
 
-        //  Hooks 
+        // Hooks
         VaultUnlockedHook vaultHook = new VaultUnlockedHook();
         PlaceholderAPIHook papiHook  = new PlaceholderAPIHook();
         if (configManager.getHooks().getBoolean("hooks.vaultunlocked.enabled", true)) hookRegistry.register(vaultHook);
         if (configManager.getHooks().getBoolean("hooks.placeholderapi.enabled", true)) hookRegistry.register(papiHook);
 
-        //  Economy 
+        // Economy
         Material currencyMat = Material.matchMaterial(
             configManager.getEconomy().getString("item-currency.material", "EMERALD")
         );
@@ -75,30 +75,30 @@ public class HavenCore extends JavaPlugin {
         MoneyEconomyAdapter moneyEco = new MoneyEconomyAdapter(vaultHook);
         EconomyServiceImpl economyService = new EconomyServiceImpl(moneyEco, itemEco, eventBus);
 
-        //  Player 
+        // Player
         PlayerRepository playerRepo = new PlayerRepository(dataSource.getDataSource());
         PlayerServiceImpl playerService = new PlayerServiceImpl(
             playerRepo, eventBus, asyncExecutor, this, getLogger()
         );
         getServer().getPluginManager().registerEvents(playerService, this);
 
-        //  Storage 
+        // Storage
         VirtualInventoryRepository storageRepo = new VirtualInventoryRepository(dataSource.getDataSource());
         StorageSettings storageSettings = StorageSettings.from(configManager.getStorage());
         StorageServiceImpl storageService = new StorageServiceImpl(
             storageRepo, eventBus, asyncExecutor, this, getLogger(), storageSettings
         );
 
-        //  Codex 
+        // Codex
         CodexRepository codexRepo = new CodexRepository(dataSource.getDataSource());
         CodexServiceImpl codexService = new CodexServiceImpl(
             codexRepo, eventBus, asyncExecutor, configManager.getCodex(), getLogger()
         );
 
-        //  GUI listener 
+        // GUI listener
         getServer().getPluginManager().registerEvents(new GuiListener(), this);
 
-        //  Register all services with Bukkit ServicesManager 
+        // Register all services with Bukkit ServicesManager
         var sm = getServer().getServicesManager();
         sm.register(HavenEventBus.class,         eventBus,       this, ServicePriority.Normal);
         sm.register(HavenCooldownService.class,   cooldowns,      this, ServicePriority.Normal);
@@ -112,7 +112,7 @@ public class HavenCore extends JavaPlugin {
         sm.register(HavenCodexService.class,      codexService,   this, ServicePriority.Normal);
         sm.register(HavenDataSource.class,        dataSource,     this, ServicePriority.Normal);
 
-        //  Commands 
+        // Commands
         HavenCommand cmd = new HavenCommand(this, configManager, hookRegistry);
         var havenCmd = getCommand("haven");
         if (havenCmd != null) {
