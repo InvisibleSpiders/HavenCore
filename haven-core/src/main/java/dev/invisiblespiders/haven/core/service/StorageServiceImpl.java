@@ -69,11 +69,18 @@ public class StorageServiceImpl implements HavenStorageService {
 
     @Override
     public void open(Player player, VirtualInventory inv) {
+        if (!Bukkit.isPrimaryThread()) {
+            plugin.getServer().getScheduler().runTask(plugin, () -> open(player, inv));
+            return;
+        }
+
+        VirtualInventoryHolder holder = new VirtualInventoryHolder(inv, repo, asyncExecutor, logger);
         Inventory bukkit = Bukkit.createInventory(
-            new VirtualInventoryHolder(inv, repo, asyncExecutor, logger),
+            holder,
             inv.getSize(),
             MM.deserialize("<gold>" + inv.getName())
         );
+        holder.setInventory(bukkit);
         inv.getContents().forEach(bukkit::setItem);
         player.openInventory(bukkit);
         eventBus.publish(new HavenVirtualStorageOpenEvent(player.getUniqueId(), inv));
