@@ -24,9 +24,11 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.12'
 
       - name: Build and test
-        run: ./gradlew build test
+        run: gradle build test
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
