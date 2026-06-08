@@ -28,8 +28,12 @@ permissions:
   haven.admin:
     description: Access to all /haven admin subcommands
     default: op
+    children:
+      haven.admin.reload: true
+      haven.admin.codex: true
   haven.admin.reload:
     description: Reload HavenCore configuration
     default: op
   haven.admin.codex:
     description: View player codex data
+    default: op
