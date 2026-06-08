@@ -20,14 +20,14 @@ public class MoneyEconomyAdapter implements EconomyAdapter {
     }
 
     @Override
-    public boolean isAvailable() { return hook.isAvailable(); }
+    public boolean isAvailable() { return hook.hasEconomyProvider(); }
 
     private Economy eco() { return hook.getEconomy(); }
 
     @Override
     public double getBalance(UUID uuid) {
         if (!isAvailable()) return 0;
-        BigDecimal bal = eco().getBalance(PLUGIN_NAME, uuid);
+        BigDecimal bal = eco().balance(PLUGIN_NAME, uuid);
         return bal == null ? 0 : bal.doubleValue();
     }
 
@@ -54,6 +54,6 @@ public class MoneyEconomyAdapter implements EconomyAdapter {
     @Override
     public String format(double amount) {
         if (!isAvailable()) return String.valueOf(amount);
-        return eco().format(BigDecimal.valueOf(amount));
+        return eco().format(PLUGIN_NAME, BigDecimal.valueOf(amount));
     }
 }
