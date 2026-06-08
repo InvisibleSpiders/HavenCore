@@ -51,6 +51,10 @@ public class ConfigManager {
         ConfigDiagnostics.logWarnings(this, luckPermsInstalled, plugin.getLogger());
     }
 
+    public void reloadOpToggle() {
+        opToggle = load("op-toggle.yml");
+    }
+
     private FileConfiguration load(String name) {
         return YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), name));
     }

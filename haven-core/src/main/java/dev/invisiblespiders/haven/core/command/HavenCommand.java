@@ -105,6 +105,7 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
+        refreshOpToggleSettings();
         OpToggleService.ToggleResult result = opToggleService.toggle(player);
         if (!result.allowed() || result.newOpState().isEmpty()) {
             sendToggleDenied(sender);
@@ -113,6 +114,13 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
 
         String state = result.newOpState().get() ? "enabled" : "disabled";
         sender.sendMessage(MM.deserialize("<green>Operator mode " + state + "."));
+    }
+
+    private void refreshOpToggleSettings() {
+        config.reloadOpToggle();
+        if (config.getOpToggle() != null) {
+            opToggleService.reload(OpToggleSettings.from(config.getOpToggle()));
+        }
     }
 
     private void sendToggleDenied(CommandSender sender) {

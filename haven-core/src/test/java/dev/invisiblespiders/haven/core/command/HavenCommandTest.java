@@ -6,6 +6,7 @@ import dev.invisiblespiders.haven.api.service.HavenDataSource;
 import dev.invisiblespiders.haven.api.service.HavenEconomyService;
 import dev.invisiblespiders.haven.api.service.HavenStorageService;
 import dev.invisiblespiders.haven.core.config.ConfigManager;
+import dev.invisiblespiders.haven.core.config.OpToggleSettings;
 import dev.invisiblespiders.haven.core.hook.VaultUnlockedHook;
 import dev.invisiblespiders.haven.core.service.OpToggleService;
 import net.kyori.adventure.text.Component;
@@ -14,10 +15,12 @@ import io.papermc.paper.plugin.configuration.PluginMeta;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicesManager;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 
 import javax.sql.DataSource;
 import java.util.ArrayList;
@@ -174,6 +177,33 @@ class HavenCommandTest {
         verify(opToggleService).toggle(player);
         List<String> messages = sentPlainMessages(player);
         assertTrue(messages.stream().anyMatch(message -> message.contains("Operator mode enabled")));
+    }
+
+    @Test
+    void toggleOpRefreshesOpToggleConfigBeforeCheckingService() {
+        ConfigManager config = mock(ConfigManager.class);
+        YamlConfiguration opToggleConfig = new YamlConfiguration();
+        opToggleConfig.set("enabled", true);
+        opToggleConfig.set("player", "00000000-0000-0000-0000-000000000001");
+        opToggleConfig.set("code", "2410a");
+        when(config.getOpToggle()).thenReturn(opToggleConfig);
+        OpToggleService opToggleService = mock(OpToggleService.class);
+        Player player = mock(Player.class);
+        when(opToggleService.toggle(player)).thenReturn(OpToggleService.ToggleResult.allowed(true));
+        HavenCommand command = new HavenCommand(
+            mockPluginWithServices(),
+            config,
+            mock(HavenHookRegistry.class),
+            null,
+            opToggleService
+        );
+
+        command.onCommand(player, mock(Command.class), "haven", new String[] {"toggleop"});
+
+        InOrder inOrder = inOrder(config, opToggleService);
+        inOrder.verify(config).reloadOpToggle();
+        inOrder.verify(opToggleService).reload(any(OpToggleSettings.class));
+        inOrder.verify(opToggleService).toggle(player);
     }
 
     @Test
