@@ -10,6 +10,7 @@ website: https://github.com/InvisibleSpiders/HavenCore
 # Soft-depend so HavenCore loads AFTER these if present (then our hooks can find them).
 # Dependent Haven plugins declare `depend: [HavenCore]` to load after us.
 softdepend:
+  - Vault
   - VaultUnlocked
   - PlaceholderAPI
   - LuckPerms
@@ -32,4 +33,3 @@ permissions:
     default: op
   haven.admin.codex:
     description: View player codex data
-    default: op
