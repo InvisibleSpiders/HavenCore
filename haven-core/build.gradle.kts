@@ -21,6 +21,8 @@ dependencies {
     compileOnly("me.clip:placeholderapi:2.11.6")
     compileOnly("net.luckperms:api:5.4")
 
+    // Paper API is compileOnly above; tests that touch Bukkit types need it too
+    testImplementation("io.papermc.paper:paper-api:26.1.2.build.69-stable")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
     testImplementation("org.mockito:mockito-core:5.23.0")
     testImplementation("org.xerial:sqlite-jdbc:3.47.0.0")
