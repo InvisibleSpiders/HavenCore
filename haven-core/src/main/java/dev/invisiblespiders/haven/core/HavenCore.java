@@ -6,6 +6,7 @@ import dev.invisiblespiders.haven.core.async.HavenAsyncExecutors;
 import dev.invisiblespiders.haven.core.command.HavenCommand;
 import dev.invisiblespiders.haven.core.config.ConfigManager;
 import dev.invisiblespiders.haven.core.config.EconomySettings;
+import dev.invisiblespiders.haven.core.config.HookSettings;
 import dev.invisiblespiders.haven.core.config.StorageSettings;
 import dev.invisiblespiders.haven.core.economy.ItemEconomyAdapter;
 import dev.invisiblespiders.haven.core.economy.MoneyEconomyAdapter;
@@ -60,8 +61,9 @@ public class HavenCore extends JavaPlugin {
         // Hooks
         VaultUnlockedHook vaultHook = new VaultUnlockedHook();
         PlaceholderAPIHook papiHook  = new PlaceholderAPIHook();
-        if (configManager.getHooks().getBoolean("hooks.vaultunlocked.enabled", true)) hookRegistry.register(vaultHook);
-        if (configManager.getHooks().getBoolean("hooks.placeholderapi.enabled", true)) hookRegistry.register(papiHook);
+        HookSettings hookSettings = HookSettings.from(configManager.getHooks());
+        if (hookSettings.vaultUnlockedEnabled()) hookRegistry.register(vaultHook);
+        if (hookSettings.placeholderApiEnabled()) hookRegistry.register(papiHook);
 
         // Economy
         EconomySettings economySettings = EconomySettings.from(configManager.getEconomy());

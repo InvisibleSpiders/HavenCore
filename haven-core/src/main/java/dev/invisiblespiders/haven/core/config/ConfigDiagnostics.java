@@ -64,7 +64,8 @@ public final class ConfigDiagnostics {
     }
 
     private static void logHookWarnings(FileConfiguration hooks, Logger logger) {
-        if (hooks.getBoolean("hooks.luckperms.enabled", false)) {
+        HookSettings hookSettings = HookSettings.from(hooks);
+        if (hookSettings.luckPermsEnabled()) {
             logger.warning("hooks.luckperms.enabled is true, but HavenCore does not currently register a LuckPerms hook.");
         }
     }
