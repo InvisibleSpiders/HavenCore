@@ -1,0 +1,15 @@
+# HavenCore Economy Configuration
+
+# Adapter priority: "money" uses VaultUnlocked, "item" uses item-based currency.
+# EconomyService exposes both; individual Haven plugins choose which to use.
+preferred-adapter: money
+
+item-currency:
+  enabled: false
+  material: EMERALD
+  # PDC tag written to currency items for identification
+  pdc-tag: "haven:currency"
+  # MiniMessage display name for currency items
+  display-name: "<green>Haven Coin"
+  lore:
+    - "<gray>Server currency"

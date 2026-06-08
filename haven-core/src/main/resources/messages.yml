@@ -1,0 +1,14 @@
+# HavenCore Messages
+# All values support MiniMessage format: https://docs.advntr.dev/minimessage/format.html
+# Set a value to "" to suppress the message.
+
+# Available placeholders vary by key — see comments per entry.
+# Common: <player>, <haven_version>
+
+haven:
+  reload-success: "<green>HavenCore reloaded successfully."
+  reload-failure: "<red>HavenCore reload encountered errors. Check console."
+  no-permission: "<red>You don't have permission to do that."
+  economy-unavailable: "<yellow>Economy is currently unavailable."
+  hook-loaded: "<gray>[HavenCore] Hook loaded: <white><hook></white>"
+  hook-unavailable: "<gray>[HavenCore] Hook unavailable (plugin not found): <white><hook></white>"

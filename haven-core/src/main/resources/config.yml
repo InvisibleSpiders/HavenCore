@@ -1,0 +1,19 @@
+# HavenCore Configuration
+# Changes require /haven reload
+
+# Feature toggles — disable systems you don't need
+features:
+  player-profiles: true
+  economy: true
+  virtual-storage: true
+  codex: true
+  notifications: true
+  cooldowns: true
+  tiers: true
+  item-registry: true
+  hooks: true
+
+# Tier resolution
+# HavenTierService reads this meta key from LuckPerms, then falls back to permission nodes.
+tier:
+  luckperms-meta-key: "haven_tier"

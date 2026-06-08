@@ -1,0 +1,9 @@
+# HavenCore Hook Configuration
+
+hooks:
+  vaultunlocked:
+    enabled: true
+  placeholderapi:
+    enabled: true
+  luckperms:
+    enabled: true

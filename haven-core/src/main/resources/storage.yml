@@ -1,0 +1,8 @@
+# HavenCore Virtual Storage Configuration
+
+defaults:
+  # Default number of rows (1-6) for new virtual inventories
+  rows: 3
+
+# Maximum inventories per player (0 = unlimited)
+max-per-player: 0

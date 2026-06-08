@@ -1,0 +1,23 @@
+# HavenCore Database Configuration
+# Shared by all Haven plugins.
+
+# "sqlite" or "mysql"
+type: sqlite
+
+sqlite:
+  # Relative to the HavenCore data folder
+  file: haven.db
+
+mysql:
+  host: localhost
+  port: 3306
+  database: haven
+  username: haven
+  password: changeme
+  # HikariCP connection pool settings
+  pool:
+    maximum-pool-size: 10
+    minimum-idle: 2
+    connection-timeout: 30000
+    idle-timeout: 600000
+    max-lifetime: 1800000

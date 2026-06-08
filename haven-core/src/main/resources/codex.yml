@@ -1,0 +1,26 @@
+# HavenCore Codex Configuration
+
+# Display names for categories (MiniMessage)
+categories:
+  mobs:   "<red>Mobs"
+  items:  "<gold>Items"
+  ores:   "<aqua>Ores"
+  fish:   "<blue>Fish"
+  blocks: "<gray>Blocks"
+
+# Rarity colors used in codex GUI (MiniMessage color tags)
+rarity-colors:
+  COMMON:    "<white>"
+  UNCOMMON:  "<green>"
+  RARE:      "<aqua>"
+  EPIC:      "<light_purple>"
+  LEGENDARY: "<gold>"
+
+# Milestone thresholds per category — fire HavenCodexMilestoneEvent at each count.
+# Other Haven plugins can hook this event to grant rewards.
+milestones:
+  mobs:   [10, 25, 50, 100, 150, 200]
+  items:  [10, 25, 50, 100]
+  ores:   [5, 10, 15, 20]
+  fish:   [5, 10, 20, 30]
+  blocks: [10, 25, 50]
