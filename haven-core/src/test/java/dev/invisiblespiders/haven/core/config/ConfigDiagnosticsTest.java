@@ -68,6 +68,25 @@ class ConfigDiagnosticsTest {
         assertTrue(records.isEmpty());
     }
 
+    @Test
+    void acceptsEnabledLuckPermsWhenPluginIsInstalled() {
+        YamlConfiguration database = new YamlConfiguration();
+        database.set("type", "sqlite");
+
+        YamlConfiguration economy = new YamlConfiguration();
+
+        YamlConfiguration storage = new YamlConfiguration();
+        storage.set("defaults.rows", 3);
+
+        YamlConfiguration hooks = new YamlConfiguration();
+        hooks.set("hooks.luckperms.enabled", true);
+
+        List<LogRecord> records = new ArrayList<>();
+        ConfigDiagnostics.logWarnings(database, economy, storage, hooks, true, logger(records));
+
+        assertTrue(records.isEmpty());
+    }
+
     private static Logger logger(List<LogRecord> records) {
         Logger logger = Logger.getLogger("ConfigDiagnosticsTest-" + System.nanoTime());
         logger.setUseParentHandlers(false);
