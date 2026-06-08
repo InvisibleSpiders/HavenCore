@@ -45,7 +45,8 @@ public class ConfigManager {
         storage  = load("storage.yml");
         codex    = load("codex.yml");
         hooks    = load("hooks.yml");
-        ConfigDiagnostics.logWarnings(this, plugin.getLogger());
+        boolean luckPermsInstalled = plugin.getServer().getPluginManager().getPlugin("LuckPerms") != null;
+        ConfigDiagnostics.logWarnings(this, luckPermsInstalled, plugin.getLogger());
     }
 
     private FileConfiguration load(String name) {
