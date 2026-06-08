@@ -6,4 +6,4 @@ hooks:
   placeholderapi:
     enabled: true
   luckperms:
-    enabled: true
+    enabled: false
