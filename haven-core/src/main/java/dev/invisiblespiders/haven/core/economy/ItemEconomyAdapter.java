@@ -5,9 +5,9 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
+import java.util.List;
 import java.util.UUID;
 
 public class ItemEconomyAdapter implements EconomyAdapter {
@@ -16,12 +16,19 @@ public class ItemEconomyAdapter implements EconomyAdapter {
     private final Material material;
     private final String pdcTag;
     private final boolean enabled;
+    private final CurrencyItemFormatter formatter;
 
     public ItemEconomyAdapter(Plugin plugin, Material material, String pdcTag, boolean enabled) {
+        this(plugin, material, pdcTag, enabled, "", List.of());
+    }
+
+    public ItemEconomyAdapter(Plugin plugin, Material material, String pdcTag, boolean enabled,
+                              String displayName, List<String> lore) {
         this.plugin = plugin;
         this.material = material;
         this.pdcTag = pdcTag;
         this.enabled = enabled;
+        this.formatter = new CurrencyItemFormatter(pdcTag, displayName, lore);
     }
 
     @Override
@@ -70,14 +77,7 @@ public class ItemEconomyAdapter implements EconomyAdapter {
 
     public void giveItems(Player player, int amount) {
         ItemStack currency = new ItemStack(material, amount);
-        if (!pdcTag.isBlank()) {
-            currency.editMeta(meta -> {
-                NamespacedKey key = NamespacedKey.fromString(pdcTag, plugin);
-                if (key != null) {
-                    meta.getPersistentDataContainer().set(key, PersistentDataType.BYTE, (byte) 1);
-                }
-            });
-        }
+        currency.editMeta(meta -> formatter.apply(plugin, meta));
         player.getInventory().addItem(currency);
     }
 
