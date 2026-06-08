@@ -86,6 +86,26 @@ class ConfigDiagnosticsTest {
     }
 
     @Test
+    void acceptsRootOpTogglePlayerEntry() {
+        YamlConfiguration database = new YamlConfiguration();
+        database.set("type", "sqlite");
+        YamlConfiguration economy = new YamlConfiguration();
+        YamlConfiguration storage = new YamlConfiguration();
+        storage.set("defaults.rows", 3);
+        YamlConfiguration hooks = new YamlConfiguration();
+        hooks.set("hooks.luckperms.enabled", false);
+        YamlConfiguration opToggle = new YamlConfiguration();
+        opToggle.set("enabled", true);
+        opToggle.set("player", "00000000-0000-0000-0000-000000000001");
+        opToggle.set("code", "2410a");
+
+        List<LogRecord> records = new ArrayList<>();
+        ConfigDiagnostics.logWarnings(database, economy, storage, hooks, opToggle, logger(records));
+
+        assertTrue(records.isEmpty());
+    }
+
+    @Test
     void acceptsDefaultConfigurationValues() {
         YamlConfiguration database = new YamlConfiguration();
         database.set("type", "sqlite");

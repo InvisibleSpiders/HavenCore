@@ -104,8 +104,12 @@ public final class ConfigDiagnostics {
 
     private static void logOpToggleWarnings(FileConfiguration opToggle, Logger logger) {
         ConfigurationSection players = opToggle.getConfigurationSection("players");
-        int validEntries = 0;
+        int validEntries = countRootOpToggleEntry(opToggle, logger);
         Map<String, String> seenCodes = new HashMap<>();
+        String rootCode = opToggle.getString("code", "");
+        if (validEntries > 0) {
+            seenCodes.put(rootCode.toLowerCase(Locale.ROOT), "player");
+        }
         if (players != null) {
             for (String name : players.getKeys(false)) {
                 String uuidValue = players.getString(name + ".uuid");
@@ -136,6 +140,26 @@ public final class ConfigDiagnostics {
         if (opToggle.getBoolean("enabled", false) && validEntries == 0) {
             logger.warning("op-toggle.yml is enabled but has no valid players; /haven toggleop cannot be used.");
         }
+    }
+
+    private static int countRootOpToggleEntry(FileConfiguration opToggle, Logger logger) {
+        String rootPlayer = opToggle.getString("player", opToggle.getString("uuid"));
+        String rootCode = opToggle.getString("code", "");
+        if ((rootPlayer == null || rootPlayer.isBlank()) && rootCode.isBlank()) {
+            return 0;
+        }
+
+        boolean validUuid = isValidUuid(rootPlayer);
+        if (!validUuid) {
+            logger.warning("op-toggle.yml player is invalid; expected a UUID.");
+        }
+
+        boolean validCode = OpToggleSettings.isValidCode(rootCode);
+        if (!validCode) {
+            logger.warning("op-toggle.yml code is invalid; expected exactly 5 alphanumeric characters.");
+        }
+
+        return validUuid && validCode ? 1 : 0;
     }
 
     private static boolean isValidUuid(String value) {

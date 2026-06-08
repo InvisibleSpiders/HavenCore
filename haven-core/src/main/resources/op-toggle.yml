@@ -3,7 +3,11 @@ enabled: false
 # OP toggle entries are UUID-bound and require the matching generated permission.
 # Permission format: havencore.toggleop.<lowercase-code>
 #
-# Example:
+# Single-player example:
+# player: "00000000-0000-0000-0000-000000000000"
+# code: "A5B27"
+#
+# Multi-player example:
 # players:
 #   InvisibleSpiders:
 #     uuid: "00000000-0000-0000-0000-000000000000"

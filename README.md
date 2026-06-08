@@ -25,17 +25,25 @@ HavenCore is the shared foundation plugin for the Haven plugin suite. It provide
 
 ## OP Toggle
 
-OP toggle is disabled by default in `op-toggle.yml`. Each allowed player must be listed by UUID with a five-character alphanumeric code:
+OP toggle is disabled by default in `op-toggle.yml`. A single allowed player can be configured at the root with a UUID and five-character alphanumeric code:
 
 ```yaml
-enabled: false
+enabled: true
+player: "00000000-0000-0000-0000-000000000000"
+code: "2410a"
+```
+
+Multiple allowed players can be configured under `players`:
+
+```yaml
+enabled: true
 players:
   InvisibleSpiders:
     uuid: "00000000-0000-0000-0000-000000000000"
     code: "A5B27"
 ```
 
-The generated permission is lowercase: `havencore.toggleop.a5b27`. The command only works for the matching UUID and does not expose configured codes through tab completion. Successful toggles are logged to the server console.
+The generated permission is lowercase: `havencore.toggleop.2410a` or `havencore.toggleop.a5b27`. The command only works for the matching UUID and does not expose configured codes through tab completion. Successful toggles are logged to the server console. Denied toggle attempts keep the in-game message generic but log the failed gate to console.
 
 Example LuckPerms assignment:
 

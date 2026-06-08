@@ -19,6 +19,10 @@ public record OpToggleSettings(boolean enabled, List<Entry> entries) {
 
     public static OpToggleSettings from(FileConfiguration config) {
         List<Entry> entries = new ArrayList<>();
+        Entry rootEntry = rootEntry(config);
+        if (rootEntry != null) {
+            entries.add(rootEntry);
+        }
         ConfigurationSection players = config.getConfigurationSection("players");
         if (players != null) {
             for (String name : players.getKeys(false)) {
@@ -30,6 +34,15 @@ public record OpToggleSettings(boolean enabled, List<Entry> entries) {
             }
         }
         return new OpToggleSettings(config.getBoolean("enabled", false), entries);
+    }
+
+    private static Entry rootEntry(FileConfiguration config) {
+        UUID uuid = parseUuid(config.getString("player", config.getString("uuid")));
+        String code = config.getString("code", "");
+        if (uuid == null || !isValidCode(code)) {
+            return null;
+        }
+        return new Entry("player", uuid, code);
     }
 
     public Optional<Entry> find(UUID uuid) {

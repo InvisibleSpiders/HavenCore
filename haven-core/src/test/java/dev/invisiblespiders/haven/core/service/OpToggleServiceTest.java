@@ -69,16 +69,19 @@ class OpToggleServiceTest {
     @Test
     void rejectsWhenFeatureDisabled() {
         UUID uuid = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        Logger logger = mock(Logger.class);
         OpToggleService service = new OpToggleService(
-            mockPlugin(),
+            mockPlugin(logger),
             settings(false, entry("InvisibleSpiders", uuid, "A5B27"))
         );
         Player player = mockPlayer(uuid, true, false);
+        when(player.getName()).thenReturn("InvisibleSpiders");
 
         OpToggleService.ToggleResult result = service.toggle(player);
 
         assertFalse(result.allowed());
         verify(player, never()).setOp(anyBoolean());
+        verify(logger).warning(contains("disabled"));
     }
 
     @Test
@@ -92,6 +95,23 @@ class OpToggleServiceTest {
 
         assertFalse(service.toggle(mockPlayer(otherUuid, true, false)).allowed());
         assertFalse(service.toggle(mockPlayer(allowedUuid, false, false)).allowed());
+    }
+
+    @Test
+    void logsMissingPermissionDenialReason() {
+        UUID uuid = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        Logger logger = mock(Logger.class);
+        OpToggleService service = new OpToggleService(
+            mockPlugin(logger),
+            settings(true, entry("InvisibleSpiders", uuid, "A5B27"))
+        );
+        Player player = mockPlayer(uuid, false, false);
+        when(player.getName()).thenReturn("InvisibleSpiders");
+
+        OpToggleService.ToggleResult result = service.toggle(player);
+
+        assertFalse(result.allowed());
+        verify(logger).warning(contains("missing permission havencore.toggleop.a5b27"));
     }
 
     @Test
@@ -112,8 +132,12 @@ class OpToggleServiceTest {
     }
 
     private static Plugin mockPlugin() {
+        return mockPlugin(mock(Logger.class));
+    }
+
+    private static Plugin mockPlugin(Logger logger) {
         Plugin plugin = mock(Plugin.class, RETURNS_DEEP_STUBS);
-        when(plugin.getLogger()).thenReturn(mock(Logger.class));
+        when(plugin.getLogger()).thenReturn(logger);
         return plugin;
     }
 
