@@ -1,6 +1,7 @@
 package dev.invisiblespiders.haven.core.service;
 
 import dev.invisiblespiders.haven.api.event.HavenEconomyTransactionEvent;
+import dev.invisiblespiders.haven.core.config.EconomySettings;
 import dev.invisiblespiders.haven.core.economy.ItemEconomyAdapter;
 import dev.invisiblespiders.haven.core.economy.MoneyEconomyAdapter;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,18 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class EconomyServiceImplTest {
+
+    @Test
+    void reportsConfiguredPreferredAdapter() {
+        EconomyServiceImpl service = new EconomyServiceImpl(
+            mock(MoneyEconomyAdapter.class),
+            mock(ItemEconomyAdapter.class),
+            new EventBusImpl(),
+            EconomySettings.Adapter.ITEM
+        );
+
+        assertEquals("item", service.getPreferredAdapter());
+    }
 
     @Test
     void depositDoesNotPublishTransactionEventWhenMoneyDepositDoesNotSucceed() {
