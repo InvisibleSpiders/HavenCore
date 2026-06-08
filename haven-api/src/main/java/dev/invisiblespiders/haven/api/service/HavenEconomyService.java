@@ -17,7 +17,7 @@ public interface HavenEconomyService {
     /** Returns true and deducts if sufficient funds. False if insufficient. */
     boolean withdraw(UUID uuid, double amount);
 
-    void deposit(UUID uuid, double amount);
+    boolean deposit(UUID uuid, double amount);
 
     boolean has(UUID uuid, double amount);
 
