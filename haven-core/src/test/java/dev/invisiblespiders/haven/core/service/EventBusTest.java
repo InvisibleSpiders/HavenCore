@@ -6,6 +6,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -65,5 +69,34 @@ class EventBusTest {
         bus.subscribe(TestEvent.class, e -> received.add(e.value));
         bus.publish(new TestEvent("ok"));
         assertEquals(List.of("ok"), received);
+    }
+
+    @Test
+    void failingHandlerLogsEventTypeAndError() {
+        Logger logger = Logger.getLogger("EventBusTest-" + System.nanoTime());
+        logger.setUseParentHandlers(false);
+        List<LogRecord> records = new ArrayList<>();
+        logger.addHandler(new Handler() {
+            @Override
+            public void publish(LogRecord record) { records.add(record); }
+
+            @Override
+            public void flush() {}
+
+            @Override
+            public void close() {}
+        });
+
+        EventBusImpl loggedBus = new EventBusImpl(logger);
+        loggedBus.subscribe(TestEvent.class, e -> { throw new RuntimeException("boom"); });
+
+        loggedBus.publish(new TestEvent("ok"));
+
+        assertEquals(1, records.size());
+        LogRecord record = records.getFirst();
+        assertEquals(Level.WARNING, record.getLevel());
+        assertTrue(record.getMessage().contains(TestEvent.class.getName()));
+        assertNotNull(record.getThrown());
+        assertEquals("boom", record.getThrown().getMessage());
     }
 }
