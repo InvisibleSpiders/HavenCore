@@ -7,11 +7,13 @@ import dev.invisiblespiders.haven.api.service.HavenEconomyService;
 import dev.invisiblespiders.haven.api.service.HavenStorageService;
 import dev.invisiblespiders.haven.core.config.ConfigManager;
 import dev.invisiblespiders.haven.core.hook.VaultUnlockedHook;
+import dev.invisiblespiders.haven.core.service.OpToggleService;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import io.papermc.paper.plugin.configuration.PluginMeta;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicesManager;
 import org.junit.jupiter.api.Test;
@@ -60,6 +62,7 @@ class HavenCommandTest {
         ConfigManager config = mock(ConfigManager.class);
         HavenHookRegistry hooks = mock(HavenHookRegistry.class);
         CommandSender sender = mock(CommandSender.class);
+        when(sender.hasPermission("haven.use")).thenReturn(true);
         VaultUnlockedHook vaultUnlocked = mock(VaultUnlockedHook.class);
         when(vaultUnlocked.getId()).thenReturn("vaultunlocked");
         when(vaultUnlocked.isAvailable()).thenReturn(true);
@@ -111,6 +114,7 @@ class HavenCommandTest {
         ConfigManager config = mock(ConfigManager.class);
         HavenHookRegistry hooks = mock(HavenHookRegistry.class);
         CommandSender sender = mock(CommandSender.class);
+        when(sender.hasPermission("haven.use")).thenReturn(true);
 
         HavenCommand command = new HavenCommand(plugin, config, hooks);
 
@@ -123,6 +127,66 @@ class HavenCommandTest {
             && message.contains("haven.use")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("/haven reload")
             && message.contains("haven.admin.reload")));
+        assertTrue(messages.stream().anyMatch(message -> message.contains("/haven toggleop")
+            && message.contains("configured UUID")));
+    }
+
+    @Test
+    void toggleOpRejectsNonPlayerSendersWithGenericMessage() {
+        OpToggleService opToggleService = mock(OpToggleService.class);
+        HavenCommand command = new HavenCommand(
+            mockPluginWithServices(),
+            mock(ConfigManager.class),
+            mock(HavenHookRegistry.class),
+            null,
+            opToggleService
+        );
+        CommandSender sender = mock(CommandSender.class);
+
+        command.onCommand(sender, mock(Command.class), "haven", new String[] {"toggleop"});
+
+        verify(opToggleService, never()).toggle(any());
+        List<String> messages = sentPlainMessages(sender);
+        assertTrue(messages.stream().anyMatch(message -> message.contains("not allowed")));
+    }
+
+    @Test
+    void toggleOpDelegatesToServiceAndReportsNewState() {
+        OpToggleService opToggleService = mock(OpToggleService.class);
+        Player player = mock(Player.class);
+        when(opToggleService.toggle(player)).thenReturn(OpToggleService.ToggleResult.allowed(true));
+        HavenCommand command = new HavenCommand(
+            mockPluginWithServices(),
+            mock(ConfigManager.class),
+            mock(HavenHookRegistry.class),
+            null,
+            opToggleService
+        );
+
+        command.onCommand(player, mock(Command.class), "haven", new String[] {"toggleop"});
+
+        verify(opToggleService).toggle(player);
+        List<String> messages = sentPlainMessages(player);
+        assertTrue(messages.stream().anyMatch(message -> message.contains("Operator mode enabled")));
+    }
+
+    @Test
+    void toggleOpUsesGenericDeniedMessageWhenServiceRejectsPlayer() {
+        OpToggleService opToggleService = mock(OpToggleService.class);
+        Player player = mock(Player.class);
+        when(opToggleService.toggle(player)).thenReturn(OpToggleService.ToggleResult.denied());
+        HavenCommand command = new HavenCommand(
+            mockPluginWithServices(),
+            mock(ConfigManager.class),
+            mock(HavenHookRegistry.class),
+            null,
+            opToggleService
+        );
+
+        command.onCommand(player, mock(Command.class), "haven", new String[] {"toggleop"});
+
+        List<String> messages = sentPlainMessages(player);
+        assertTrue(messages.stream().anyMatch(message -> message.contains("not allowed")));
     }
 
     @Test
@@ -132,16 +196,17 @@ class HavenCommandTest {
             mock(ConfigManager.class),
             mock(HavenHookRegistry.class)
         );
-        CommandSender sender = mock(CommandSender.class);
+        Player sender = mock(Player.class);
+        when(sender.hasPermission("haven.use")).thenReturn(true);
         when(sender.hasPermission("haven.admin.reload")).thenReturn(false);
 
-        assertEquals(List.of("help", "status", "version"), command.onTabComplete(
+        assertEquals(List.of("help", "status", "toggleop", "version"), command.onTabComplete(
             sender, mock(Command.class), "haven", new String[] {""}
         ));
 
         when(sender.hasPermission("haven.admin.reload")).thenReturn(true);
 
-        assertEquals(List.of("help", "reload", "status", "version"), command.onTabComplete(
+        assertEquals(List.of("help", "reload", "status", "toggleop", "version"), command.onTabComplete(
             sender, mock(Command.class), "haven", new String[] {""}
         ));
     }

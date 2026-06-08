@@ -18,8 +18,7 @@ softdepend:
 commands:
   haven:
     description: HavenCore admin command
-    usage: /haven [help|status|version|reload]
-    permission: haven.use
+    usage: /haven [help|status|version|reload|toggleop]
 
 permissions:
   haven.use:

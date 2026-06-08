@@ -7,12 +7,15 @@ import dev.invisiblespiders.haven.api.service.HavenEconomyService;
 import dev.invisiblespiders.haven.api.service.HavenHookRegistry;
 import dev.invisiblespiders.haven.api.service.HavenStorageService;
 import dev.invisiblespiders.haven.core.config.ConfigManager;
+import dev.invisiblespiders.haven.core.config.OpToggleSettings;
 import dev.invisiblespiders.haven.core.hook.VaultUnlockedHook;
+import dev.invisiblespiders.haven.core.service.OpToggleService;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicesManager;
 
@@ -28,44 +31,92 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
     private final ConfigManager config;
     private final HavenHookRegistry hooks;
     private final ExecutorService asyncExecutor;
+    private final OpToggleService opToggleService;
 
     public HavenCommand(Plugin plugin, ConfigManager config, HavenHookRegistry hooks) {
-        this(plugin, config, hooks, null);
+        this(plugin, config, hooks, null, null);
     }
 
     public HavenCommand(Plugin plugin, ConfigManager config, HavenHookRegistry hooks, ExecutorService asyncExecutor) {
+        this(plugin, config, hooks, asyncExecutor, null);
+    }
+
+    public HavenCommand(Plugin plugin, ConfigManager config, HavenHookRegistry hooks,
+                        ExecutorService asyncExecutor, OpToggleService opToggleService) {
         this.plugin = plugin;
         this.config = config;
         this.hooks = hooks;
         this.asyncExecutor = asyncExecutor;
+        this.opToggleService = opToggleService;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
+            if (!requirePermission(sender, "haven.use")) {
+                return true;
+            }
             sendStatus(sender);
             return true;
         }
         switch (args[0].toLowerCase()) {
-            case "help"    -> sendHelp(sender);
-            case "status"  -> sendStatus(sender);
-            case "version" -> sendVersion(sender);
+            case "help"    -> {
+                if (requirePermission(sender, "haven.use")) sendHelp(sender);
+            }
+            case "status"  -> {
+                if (requirePermission(sender, "haven.use")) sendStatus(sender);
+            }
+            case "version" -> {
+                if (requirePermission(sender, "haven.use")) sendVersion(sender);
+            }
             case "reload"  -> {
                 if (!sender.hasPermission("haven.admin.reload")) {
                     sender.sendMessage(MM.deserialize("<red>No permission."));
                     return true;
                 }
                 config.reload();
+                if (opToggleService != null) {
+                    opToggleService.reload(OpToggleSettings.from(config.getOpToggle()));
+                }
                 sender.sendMessage(MM.deserialize("<green>HavenCore configuration files reloaded."));
                 sender.sendMessage(MM.deserialize(
                     "<yellow>Restart required for hooks, economy, database, and service wiring changes."
                 ));
             }
+            case "toggleop" -> toggleOp(sender);
             default -> sender.sendMessage(MM.deserialize(
-                "<gray>Usage: /haven [help|status|version|reload]"
+                "<gray>Usage: /haven [help|status|version|reload|toggleop]"
             ));
         }
         return true;
+    }
+
+    private boolean requirePermission(CommandSender sender, String permission) {
+        if (sender.hasPermission(permission)) {
+            return true;
+        }
+        sender.sendMessage(MM.deserialize("<red>No permission."));
+        return false;
+    }
+
+    private void toggleOp(CommandSender sender) {
+        if (!(sender instanceof Player player) || opToggleService == null) {
+            sendToggleDenied(sender);
+            return;
+        }
+
+        OpToggleService.ToggleResult result = opToggleService.toggle(player);
+        if (!result.allowed() || result.newOpState().isEmpty()) {
+            sendToggleDenied(sender);
+            return;
+        }
+
+        String state = result.newOpState().get() ? "enabled" : "disabled";
+        sender.sendMessage(MM.deserialize("<green>Operator mode " + state + "."));
+    }
+
+    private void sendToggleDenied(CommandSender sender) {
+        sender.sendMessage(MM.deserialize("<red>You are not allowed to use this command."));
     }
 
     private void sendStatus(CommandSender sender) {
@@ -152,6 +203,7 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(MM.deserialize("<gray>/haven status <dark_gray>- <white>Show hooks, economy, and service health <gray>(haven.use)"));
         sender.sendMessage(MM.deserialize("<gray>/haven version <dark_gray>- <white>Show HavenCore, Paper, and Java versions <gray>(haven.use)"));
         sender.sendMessage(MM.deserialize("<gray>/haven reload <dark_gray>- <white>Reload configuration files <gray>(haven.admin.reload)"));
+        sender.sendMessage(MM.deserialize("<gray>/haven toggleop <dark_gray>- <white>Toggle OP for configured UUID entries only"));
     }
 
     private void sendVersion(CommandSender sender) {
@@ -165,9 +217,15 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> subcommands = new ArrayList<>(List.of("help", "status", "version"));
+            List<String> subcommands = new ArrayList<>();
+            if (sender.hasPermission("haven.use")) {
+                subcommands.addAll(List.of("help", "status", "version"));
+            }
             if (sender.hasPermission("haven.admin.reload")) {
                 subcommands.add("reload");
+            }
+            if (sender instanceof Player) {
+                subcommands.add("toggleop");
             }
             String prefix = args[0].toLowerCase();
             return subcommands.stream()
