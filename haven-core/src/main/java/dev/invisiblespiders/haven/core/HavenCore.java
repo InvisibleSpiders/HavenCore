@@ -2,6 +2,7 @@ package dev.invisiblespiders.haven.core;
 
 import com.zaxxer.hikari.HikariConfig;
 import dev.invisiblespiders.haven.api.service.*;
+import dev.invisiblespiders.haven.core.async.HavenAsyncExecutors;
 import dev.invisiblespiders.haven.core.command.HavenCommand;
 import dev.invisiblespiders.haven.core.config.ConfigManager;
 import dev.invisiblespiders.haven.core.economy.ItemEconomyAdapter;
@@ -17,8 +18,7 @@ import org.bukkit.Material;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.concurrent.Executor;
-import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ExecutorService;
 
 public class HavenCore extends JavaPlugin {
 
@@ -27,6 +27,7 @@ public class HavenCore extends JavaPlugin {
     private ConfigManager configManager;
     private DataSourceImpl dataSource;
     private HookRegistryImpl hookRegistry;
+    private ExecutorService asyncExecutor;
 
     @Override
     public void onEnable() {
@@ -41,8 +42,8 @@ public class HavenCore extends JavaPlugin {
         dataSource = new DataSourceImpl(getLogger());
         dataSource.init(hikariConfig);
 
-        // ── Async executor (shared thread pool) ───────────────────────────────
-        Executor asyncExecutor = ForkJoinPool.commonPool();
+        // ── Async executor (owned thread pool) ───────────────────────────────
+        asyncExecutor = HavenAsyncExecutors.create(2);
 
         // ── Core services ────────────────────────────────────────────────────
         EventBusImpl    eventBus    = new EventBusImpl(getLogger());
@@ -127,6 +128,10 @@ public class HavenCore extends JavaPlugin {
 
         // Unregister all services
         getServer().getServicesManager().unregisterAll(this);
+
+        // Stop async database work before closing the pool
+        HavenAsyncExecutors.shutdown(asyncExecutor, getLogger());
+        asyncExecutor = null;
 
         // Close DB pool
         if (dataSource != null) dataSource.close();
