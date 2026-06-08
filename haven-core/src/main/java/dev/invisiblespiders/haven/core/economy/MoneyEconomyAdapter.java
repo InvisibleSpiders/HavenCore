@@ -45,10 +45,10 @@ public class MoneyEconomyAdapter implements EconomyAdapter {
     }
 
     @Override
-    public void deposit(UUID uuid, double amount) {
-        if (isAvailable()) {
-            eco().deposit(PLUGIN_NAME, uuid, BigDecimal.valueOf(amount));
-        }
+    public boolean deposit(UUID uuid, double amount) {
+        if (!isAvailable()) return false;
+        EconomyResponse response = eco().deposit(PLUGIN_NAME, uuid, BigDecimal.valueOf(amount));
+        return response != null && response.transactionSuccess();
     }
 
     @Override
