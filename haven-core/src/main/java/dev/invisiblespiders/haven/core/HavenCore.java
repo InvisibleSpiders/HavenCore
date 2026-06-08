@@ -71,7 +71,9 @@ public class HavenCore extends JavaPlugin {
         ItemEconomyAdapter itemEco = new ItemEconomyAdapter(
             this, currencyMat,
             economySettings.itemCurrencyTag(),
-            economySettings.itemCurrencyEnabled()
+            economySettings.itemCurrencyEnabled(),
+            economySettings.itemDisplayName(),
+            economySettings.itemLore()
         );
         MoneyEconomyAdapter moneyEco = new MoneyEconomyAdapter(vaultHook);
         EconomyServiceImpl economyService = new EconomyServiceImpl(
