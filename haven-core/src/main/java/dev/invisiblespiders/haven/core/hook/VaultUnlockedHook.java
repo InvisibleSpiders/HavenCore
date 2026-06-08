@@ -33,5 +33,7 @@ public class VaultUnlockedHook implements HavenHook {
 
     public Economy getEconomy() { return economy; }
 
+    public boolean isPluginPresent() { return pluginPresent; }
+
     public boolean hasEconomyProvider() { return economy != null; }
 }
