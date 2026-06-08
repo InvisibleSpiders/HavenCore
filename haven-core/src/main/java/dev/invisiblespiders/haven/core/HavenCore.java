@@ -7,6 +7,7 @@ import dev.invisiblespiders.haven.core.command.HavenCommand;
 import dev.invisiblespiders.haven.core.config.ConfigManager;
 import dev.invisiblespiders.haven.core.config.EconomySettings;
 import dev.invisiblespiders.haven.core.config.HookSettings;
+import dev.invisiblespiders.haven.core.config.OpToggleSettings;
 import dev.invisiblespiders.haven.core.config.StorageSettings;
 import dev.invisiblespiders.haven.core.economy.ItemEconomyAdapter;
 import dev.invisiblespiders.haven.core.economy.MoneyEconomyAdapter;
@@ -57,6 +58,10 @@ public class HavenCore extends JavaPlugin {
             configManager.getMain().getString("tier.luckperms-meta-key", "haven_tier"), getLogger()
         );
         NotificationServiceImpl notifications = new NotificationServiceImpl(configManager);
+        OpToggleService opToggleService = new OpToggleService(
+            this, OpToggleSettings.from(configManager.getOpToggle())
+        );
+        opToggleService.registerPermissions();
 
         // Hooks
         VaultUnlockedHook vaultHook = new VaultUnlockedHook();
@@ -118,7 +123,9 @@ public class HavenCore extends JavaPlugin {
         sm.register(HavenDataSource.class,        dataSource,     this, ServicePriority.Normal);
 
         // Commands
-        HavenCommand cmd = new HavenCommand(this, configManager, hookRegistry, asyncExecutor);
+        HavenCommand cmd = new HavenCommand(
+            this, configManager, hookRegistry, asyncExecutor, opToggleService
+        );
         var havenCmd = getCommand("haven");
         if (havenCmd != null) {
             havenCmd.setExecutor(cmd);
