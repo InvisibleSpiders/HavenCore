@@ -23,6 +23,7 @@ dependencies {
 
     // Paper API is compileOnly above; tests that touch Bukkit types need it too
     testImplementation("io.papermc.paper:paper-api:26.1.2.build.69-stable")
+    testImplementation("net.milkbowl.vault:VaultUnlockedAPI:2.15")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
     testImplementation("org.mockito:mockito-core:5.23.0")
     testImplementation("org.xerial:sqlite-jdbc:3.47.0.0")
