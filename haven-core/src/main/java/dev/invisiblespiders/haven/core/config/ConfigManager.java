@@ -45,6 +45,7 @@ public class ConfigManager {
         storage  = load("storage.yml");
         codex    = load("codex.yml");
         hooks    = load("hooks.yml");
+        ConfigDiagnostics.logWarnings(this, plugin.getLogger());
     }
 
     private FileConfiguration load(String name) {
