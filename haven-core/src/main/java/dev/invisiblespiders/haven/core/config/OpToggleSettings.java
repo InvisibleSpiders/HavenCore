@@ -24,7 +24,7 @@ public record OpToggleSettings(boolean enabled, List<Entry> entries) {
             for (String name : players.getKeys(false)) {
                 UUID uuid = parseUuid(players.getString(name + ".uuid"));
                 String code = players.getString(name + ".code", "");
-                if (uuid != null && code.matches(CODE_PATTERN)) {
+                if (uuid != null && isValidCode(code)) {
                     entries.add(new Entry(name, uuid, code));
                 }
             }
@@ -47,6 +47,10 @@ public record OpToggleSettings(boolean enabled, List<Entry> entries) {
         } catch (IllegalArgumentException e) {
             return null;
         }
+    }
+
+    public static boolean isValidCode(String value) {
+        return value != null && value.matches(CODE_PATTERN);
     }
 
     public record Entry(String name, UUID uuid, String code) {

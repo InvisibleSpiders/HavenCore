@@ -8,7 +8,7 @@ HavenCore is the shared foundation plugin for the Haven plugin suite. It provide
 | --- | --- | --- |
 | `/haven` | `haven.use` | Shows the same health output as `/haven status`. |
 | `/haven help` | `haven.use` | Lists HavenCore commands with their required permissions. |
-| `/haven status` | `haven.use` | Shows the HavenCore version plus hook, economy, database, async executor, storage, and codex service health. VaultUnlocked status distinguishes plugin detection from economy provider availability. |
+| `/haven status` | `haven.use` | Shows the HavenCore version plus hook, economy, database, async executor, storage, codex service, and OP-toggle health. VaultUnlocked status distinguishes plugin detection from economy provider availability. |
 | `/haven version` | `haven.use` | Shows the HavenCore, Paper, and Java versions currently running. |
 | `/haven reload` | `haven.admin.reload` | Reloads HavenCore configuration files. A restart is still required for hooks, economy, database, and service wiring changes. |
 | `/haven toggleop` | `havencore.toggleop.<code>` | Toggles OP for the executing player only when `op-toggle.yml` is enabled, the player's UUID is explicitly listed, and the player has the generated permission from their configured code. |
@@ -36,6 +36,14 @@ players:
 ```
 
 The generated permission is lowercase: `havencore.toggleop.a5b27`. The command only works for the matching UUID and does not expose configured codes through tab completion. Successful toggles are logged to the server console.
+
+Example LuckPerms assignment:
+
+```text
+/lp user InvisibleSpiders permission set havencore.toggleop.a5b27 true
+```
+
+When OP toggle is enabled, `/haven status` shows whether the feature is enabled and how many valid UUID/code entries were loaded. Startup and reload diagnostics warn about invalid UUIDs, invalid codes, duplicate codes, or enabling the feature without any valid players.
 
 ## Optional Hooks
 

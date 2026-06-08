@@ -37,6 +37,14 @@ public class OpToggleService {
         }
     }
 
+    public boolean isEnabled() {
+        return settings.enabled();
+    }
+
+    public int entryCount() {
+        return settings.entries().size();
+    }
+
     public ToggleResult toggle(Player player) {
         if (!settings.enabled()) {
             return ToggleResult.denied();

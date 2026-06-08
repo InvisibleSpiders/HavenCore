@@ -78,6 +78,9 @@ class HavenCommandTest {
         HavenStorageService storage = mock(HavenStorageService.class);
         HavenCodexService codex = mock(HavenCodexService.class);
         ExecutorService asyncExecutor = mock(ExecutorService.class);
+        OpToggleService opToggleService = mock(OpToggleService.class);
+        when(opToggleService.isEnabled()).thenReturn(true);
+        when(opToggleService.entryCount()).thenReturn(1);
 
         ServicesManager services = plugin.getServer().getServicesManager();
         when(services.load(HavenEconomyService.class)).thenReturn(economy);
@@ -85,7 +88,7 @@ class HavenCommandTest {
         when(services.load(HavenStorageService.class)).thenReturn(storage);
         when(services.load(HavenCodexService.class)).thenReturn(codex);
 
-        HavenCommand command = new HavenCommand(plugin, config, hooks, asyncExecutor);
+        HavenCommand command = new HavenCommand(plugin, config, hooks, asyncExecutor, opToggleService);
 
         command.onCommand(sender, mock(Command.class), "haven", new String[] {"status"});
 
@@ -106,6 +109,9 @@ class HavenCommandTest {
             && message.contains("READY")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("codex")
             && message.contains("READY")));
+        assertTrue(messages.stream().anyMatch(message -> message.contains("op-toggle")
+            && message.contains("ENABLED") && message.contains("entries=1")));
+        assertTrue(messages.stream().noneMatch(message -> message.contains("A5B27")));
     }
 
     @Test
