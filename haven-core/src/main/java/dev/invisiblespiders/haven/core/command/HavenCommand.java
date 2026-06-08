@@ -41,7 +41,10 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 config.reload();
-                sender.sendMessage(MM.deserialize("<green>HavenCore configuration reloaded."));
+                sender.sendMessage(MM.deserialize("<green>HavenCore configuration files reloaded."));
+                sender.sendMessage(MM.deserialize(
+                    "<yellow>Restart required for hooks, economy, database, and service wiring changes."
+                ));
             }
             default -> sender.sendMessage(MM.deserialize(
                 "<gray>Usage: /haven [status|version|reload]"
