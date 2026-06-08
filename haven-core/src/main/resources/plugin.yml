@@ -2,13 +2,17 @@ name: HavenCore
 version: '${version}'
 main: dev.invisiblespiders.haven.core.HavenCore
 description: Shared foundation services for the Haven plugin suite.
-api-version: '1.26'
+api-version: '26.1'
 authors:
   - InvisibleSpiders
-website: https://github.com/InvisibleSpiders/HavenAPI
+website: https://github.com/InvisibleSpiders/HavenCore
 
-# Load before any Haven plugin that depends on us
-load: STARTUP
+# Soft-depend so HavenCore loads AFTER these if present (then our hooks can find them).
+# Dependent Haven plugins declare `depend: [HavenCore]` to load after us.
+softdepend:
+  - VaultUnlocked
+  - PlaceholderAPI
+  - LuckPerms
 
 commands:
   haven:
@@ -29,18 +33,3 @@ permissions:
   haven.admin.codex:
     description: View player codex data
     default: op
-
-dependencies:
-  server:
-    VaultUnlocked:
-      load: BEFORE
-      required: false
-      join-classpath: true
-    PlaceholderAPI:
-      load: BEFORE
-      required: false
-      join-classpath: true
-    LuckPerms:
-      load: BEFORE
-      required: false
-      join-classpath: true

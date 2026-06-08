@@ -4,7 +4,6 @@ import dev.invisiblespiders.haven.api.service.HavenTierService;
 import net.luckperms.api.LuckPerms;
 import net.luckperms.api.LuckPermsProvider;
 import net.luckperms.api.model.user.User;
-import net.luckperms.api.node.types.MetaNode;
 import org.bukkit.entity.Player;
 
 import java.util.Map;
@@ -31,9 +30,9 @@ public class TierServiceImpl implements HavenTierService {
         try {
             LuckPerms lp = LuckPermsProvider.get();
             User user = lp.getPlayerAdapter(Player.class).getUser(player);
-            return user.getCachedData().getMetaData().getMetaValue(key, String.class)
-                .map(Optional::of)
-                .orElse(Optional.empty());
+            // getMetaValue(String) returns a nullable String in LuckPerms 5.4
+            String value = user.getCachedData().getMetaData().getMetaValue(key);
+            return Optional.ofNullable(value);
         } catch (IllegalStateException e) {
             // LuckPerms not available
             return Optional.empty();

@@ -40,6 +40,6 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: haven-core/build/libs/HavenAPI-*-paper-26.1.2.jar
+          files: haven-core/build/libs/HavenCore-*-paper-26.1.2.jar
           generate_release_notes: true
           fail_on_unmatched_files: true

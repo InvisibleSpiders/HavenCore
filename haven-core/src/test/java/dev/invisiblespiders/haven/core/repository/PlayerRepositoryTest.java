@@ -3,7 +3,7 @@ package dev.invisiblespiders.haven.core.repository;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import dev.invisiblespiders.haven.api.model.HavenPlayer;
-import org.flywaydb.core.Flyway;
+import dev.invisiblespiders.haven.core.db.SqlMigrator;
 import org.junit.jupiter.api.*;
 
 import java.util.Optional;
@@ -18,21 +18,16 @@ class PlayerRepositoryTest {
     private static PlayerRepository repo;
 
     @BeforeAll
-    static void setup() {
+    static void setup() throws Exception {
         HikariConfig cfg = new HikariConfig();
+        // Shared in-memory DB across the single pooled connection
         cfg.setJdbcUrl("jdbc:sqlite::memory:");
         cfg.setMaximumPoolSize(1);
         cfg.setConnectionInitSql("PRAGMA foreign_keys=ON;");
         ds = new HikariDataSource(cfg);
 
-        Flyway.configure()
-            .dataSource(ds)
-            .locations("classpath:db/migrations/haven")
-            .table("flyway_schema_history_haven")
-            .baselineOnMigrate(true)
-            .baselineVersion("0")
-            .load()
-            .migrate();
+        SqlMigrator.migrate(ds, "haven", "db/migrations/haven",
+            PlayerRepositoryTest.class.getClassLoader());
 
         repo = new PlayerRepository(ds);
     }

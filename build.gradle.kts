@@ -8,14 +8,14 @@ allprojects {
 
     repositories {
         mavenCentral()
-        // Paper — verify snapshot string against https://repo.papermc.io for 1.26.1
+        // Paper (also serves LuckPerms api)
         maven("https://repo.papermc.io/repository/maven-public/")
         // PlaceholderAPI
         maven("https://repo.extendedclip.com/content/repositories/placeholderapi/")
-        // VaultUnlocked — replace with official repo once published; JitPack as fallback
+        // VaultUnlockedAPI + LuckPerms snapshots
+        maven("https://repo.codemc.io/repository/maven-public/")
+        // JitPack fallback for misc deps
         maven("https://jitpack.io")
-        // LuckPerms
-        maven("https://oss.sonatype.org/content/repositories/snapshots/")
     }
 }
 

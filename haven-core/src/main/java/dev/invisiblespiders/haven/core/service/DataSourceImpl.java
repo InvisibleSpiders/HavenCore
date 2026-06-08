@@ -3,7 +3,7 @@ package dev.invisiblespiders.haven.core.service;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import dev.invisiblespiders.haven.api.service.HavenDataSource;
-import org.flywaydb.core.Flyway;
+import dev.invisiblespiders.haven.core.db.SqlMigrator;
 
 import javax.sql.DataSource;
 import java.util.logging.Logger;
@@ -19,8 +19,8 @@ public class DataSourceImpl implements HavenDataSource {
 
     public void init(HikariConfig config) {
         pool = new HikariDataSource(config);
-        // Run HavenAPI's own migrations immediately
-        runFlyway("haven", "classpath:db/migrations/haven", getClass().getClassLoader());
+        // Run HavenCore's own migrations immediately
+        registerMigrations("haven", "db/migrations/haven", getClass().getClassLoader());
         logger.info("Database pool initialized.");
     }
 
@@ -31,23 +31,11 @@ public class DataSourceImpl implements HavenDataSource {
 
     @Override
     public void registerMigrations(String pluginId, String location, ClassLoader loader) {
-        runFlyway(pluginId, location, loader);
-    }
-
-    private void runFlyway(String pluginId, String location, ClassLoader loader) {
         try {
-            Flyway.configure()
-                .classLoader(loader)
-                .dataSource(pool)
-                .locations(location)
-                .table("flyway_schema_history_" + pluginId)
-                .baselineOnMigrate(true)
-                .baselineVersion("0")
-                .load()
-                .migrate();
-            logger.fine("Flyway migrations complete for: " + pluginId);
+            SqlMigrator.migrate(pool, pluginId, location, loader);
+            logger.fine("Migrations complete for: " + pluginId);
         } catch (Exception e) {
-            logger.severe("Flyway migration failed for plugin '" + pluginId + "': " + e.getMessage());
+            logger.severe("Migration failed for plugin '" + pluginId + "': " + e.getMessage());
             throw new RuntimeException("Migration failure for " + pluginId, e);
         }
     }
