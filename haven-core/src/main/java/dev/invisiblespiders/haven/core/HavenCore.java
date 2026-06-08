@@ -118,7 +118,7 @@ public class HavenCore extends JavaPlugin {
         sm.register(HavenDataSource.class,        dataSource,     this, ServicePriority.Normal);
 
         // Commands
-        HavenCommand cmd = new HavenCommand(this, configManager, hookRegistry);
+        HavenCommand cmd = new HavenCommand(this, configManager, hookRegistry, asyncExecutor);
         var havenCmd = getCommand("haven");
         if (havenCmd != null) {
             havenCmd.setExecutor(cmd);

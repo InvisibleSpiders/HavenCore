@@ -18,12 +18,12 @@ softdepend:
 commands:
   haven:
     description: HavenCore admin command
-    usage: /haven [status|version|reload]
+    usage: /haven [help|status|version|reload]
     permission: haven.use
 
 permissions:
   haven.use:
-    description: Access to /haven status and version
+    description: Access to /haven help, status, and version
     default: op
   haven.admin:
     description: Access to all /haven admin subcommands
