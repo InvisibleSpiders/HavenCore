@@ -14,21 +14,32 @@ public final class ConfigDiagnostics {
     private ConfigDiagnostics() {}
 
     public static void logWarnings(ConfigManager config, Logger logger) {
+        logWarnings(config, false, logger);
+    }
+
+    public static void logWarnings(ConfigManager config, boolean luckPermsInstalled, Logger logger) {
         logWarnings(
             config.getDatabase(),
             config.getEconomy(),
             config.getStorage(),
             config.getHooks(),
+            luckPermsInstalled,
             logger
         );
     }
 
     static void logWarnings(FileConfiguration database, FileConfiguration economy,
                             FileConfiguration storage, FileConfiguration hooks, Logger logger) {
+        logWarnings(database, economy, storage, hooks, false, logger);
+    }
+
+    static void logWarnings(FileConfiguration database, FileConfiguration economy,
+                            FileConfiguration storage, FileConfiguration hooks,
+                            boolean luckPermsInstalled, Logger logger) {
         logDatabaseWarnings(database, logger);
         logEconomyWarnings(economy, logger);
         logStorageWarnings(storage, logger);
-        logHookWarnings(hooks, logger);
+        logHookWarnings(hooks, luckPermsInstalled, logger);
     }
 
     private static void logDatabaseWarnings(FileConfiguration database, Logger logger) {
@@ -63,10 +74,10 @@ public final class ConfigDiagnostics {
         }
     }
 
-    private static void logHookWarnings(FileConfiguration hooks, Logger logger) {
+    private static void logHookWarnings(FileConfiguration hooks, boolean luckPermsInstalled, Logger logger) {
         HookSettings hookSettings = HookSettings.from(hooks);
-        if (hookSettings.luckPermsEnabled()) {
-            logger.warning("hooks.luckperms.enabled is true, but HavenCore does not currently register a LuckPerms hook.");
+        if (hookSettings.luckPermsEnabled() && !luckPermsInstalled) {
+            logger.warning("hooks.luckperms.enabled is true, but LuckPerms is not installed.");
         }
     }
 }
