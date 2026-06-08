@@ -17,13 +17,13 @@ dependencies {
     runtimeOnly("com.mysql:mysql-connector-j:9.1.0")
 
     // Soft-depend — provided at runtime by server owners
-    compileOnly("net.milkbowl.vault:VaultUnlockedAPI:2.15")
+    compileOnly("net.milkbowl.vault:VaultUnlockedAPI:2.19")
     compileOnly("me.clip:placeholderapi:2.11.6")
     compileOnly("net.luckperms:api:5.4")
 
     // Paper API is compileOnly above; tests that touch Bukkit types need it too
     testImplementation("io.papermc.paper:paper-api:26.1.2.build.69-stable")
-    testImplementation("net.milkbowl.vault:VaultUnlockedAPI:2.15")
+    testImplementation("net.milkbowl.vault:VaultUnlockedAPI:2.19")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
     testImplementation("org.mockito:mockito-core:5.23.0")
     testImplementation("org.xerial:sqlite-jdbc:3.47.0.0")
