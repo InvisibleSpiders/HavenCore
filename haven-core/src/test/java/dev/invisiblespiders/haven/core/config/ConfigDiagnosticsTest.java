@@ -21,6 +21,7 @@ class ConfigDiagnosticsTest {
         database.set("type", "postgres");
 
         YamlConfiguration economy = new YamlConfiguration();
+        economy.set("preferred-adapter", "barter");
         economy.set("item-currency.enabled", true);
         economy.set("item-currency.material", "NOT_A_MATERIAL");
 
@@ -38,8 +39,9 @@ class ConfigDiagnosticsTest {
             .map(LogRecord::getMessage)
             .toList();
 
-        assertEquals(4, messages.size());
+        assertEquals(5, messages.size());
         assertTrue(messages.stream().anyMatch(message -> message.contains("database.yml type 'postgres'")));
+        assertTrue(messages.stream().anyMatch(message -> message.contains("preferred-adapter 'barter'")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("item-currency.material 'NOT_A_MATERIAL'")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("storage.yml defaults.rows")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("hooks.luckperms.enabled")));

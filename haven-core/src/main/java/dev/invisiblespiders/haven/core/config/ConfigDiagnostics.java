@@ -39,6 +39,12 @@ public final class ConfigDiagnostics {
     }
 
     private static void logEconomyWarnings(FileConfiguration economy, Logger logger) {
+        String preferredAdapter = economy.getString("preferred-adapter", "money");
+        if (!EconomySettings.Adapter.isValid(preferredAdapter)) {
+            logger.warning("economy.yml preferred-adapter '" + preferredAdapter
+                + "' is invalid; using money. Expected: money, item.");
+        }
+
         if (!economy.getBoolean("item-currency.enabled", false)) {
             return;
         }

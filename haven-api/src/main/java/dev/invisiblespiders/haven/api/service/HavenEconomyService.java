@@ -12,6 +12,9 @@ public interface HavenEconomyService {
     /** Returns true if item economy is configured and available. */
     boolean isItemAvailable();
 
+    /** Returns the configured preferred adapter id: "money" or "item". */
+    String getPreferredAdapter();
+
     double getBalance(UUID uuid);
 
     /** Returns true and deducts if sufficient funds. False if insufficient. */

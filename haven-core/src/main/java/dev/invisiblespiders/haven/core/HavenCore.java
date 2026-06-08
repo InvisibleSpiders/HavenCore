@@ -5,6 +5,7 @@ import dev.invisiblespiders.haven.api.service.*;
 import dev.invisiblespiders.haven.core.async.HavenAsyncExecutors;
 import dev.invisiblespiders.haven.core.command.HavenCommand;
 import dev.invisiblespiders.haven.core.config.ConfigManager;
+import dev.invisiblespiders.haven.core.config.EconomySettings;
 import dev.invisiblespiders.haven.core.config.StorageSettings;
 import dev.invisiblespiders.haven.core.economy.ItemEconomyAdapter;
 import dev.invisiblespiders.haven.core.economy.MoneyEconomyAdapter;
@@ -63,17 +64,17 @@ public class HavenCore extends JavaPlugin {
         if (configManager.getHooks().getBoolean("hooks.placeholderapi.enabled", true)) hookRegistry.register(papiHook);
 
         // Economy
-        Material currencyMat = Material.matchMaterial(
-            configManager.getEconomy().getString("item-currency.material", "EMERALD")
-        );
-        if (currencyMat == null) currencyMat = Material.EMERALD;
+        EconomySettings economySettings = EconomySettings.from(configManager.getEconomy());
+        Material currencyMat = economySettings.itemMaterial();
         ItemEconomyAdapter itemEco = new ItemEconomyAdapter(
             this, currencyMat,
-            configManager.getEconomy().getString("item-currency.pdc-tag", "haven:currency"),
-            configManager.getEconomy().getBoolean("item-currency.enabled", false)
+            economySettings.itemCurrencyTag(),
+            economySettings.itemCurrencyEnabled()
         );
         MoneyEconomyAdapter moneyEco = new MoneyEconomyAdapter(vaultHook);
-        EconomyServiceImpl economyService = new EconomyServiceImpl(moneyEco, itemEco, eventBus);
+        EconomyServiceImpl economyService = new EconomyServiceImpl(
+            moneyEco, itemEco, eventBus, economySettings.preferredAdapter()
+        );
 
         // Player
         PlayerRepository playerRepo = new PlayerRepository(dataSource.getDataSource());
