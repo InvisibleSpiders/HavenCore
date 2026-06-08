@@ -10,6 +10,8 @@ import java.util.concurrent.CompletableFuture;
 
 public interface HavenStorageService {
 
+    CompletableFuture<VirtualInventory> create(UUID ownerUuid, String name);
+
     CompletableFuture<VirtualInventory> create(UUID ownerUuid, String name, int rows);
 
     CompletableFuture<Optional<VirtualInventory>> get(UUID id);
