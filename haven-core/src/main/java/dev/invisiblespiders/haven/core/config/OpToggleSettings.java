@@ -4,9 +4,11 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public record OpToggleSettings(boolean enabled, List<Entry> entries) {
@@ -19,9 +21,11 @@ public record OpToggleSettings(boolean enabled, List<Entry> entries) {
 
     public static OpToggleSettings from(FileConfiguration config) {
         List<Entry> entries = new ArrayList<>();
+        Set<UUID> seenUuids = new HashSet<>();
+        Set<String> seenCodes = new HashSet<>();
         Entry rootEntry = rootEntry(config);
         if (rootEntry != null) {
-            entries.add(rootEntry);
+            addIfUnique(entries, rootEntry, seenUuids, seenCodes);
         }
         ConfigurationSection players = config.getConfigurationSection("players");
         if (players != null) {
@@ -29,11 +33,22 @@ public record OpToggleSettings(boolean enabled, List<Entry> entries) {
                 UUID uuid = parseUuid(players.getString(name + ".uuid"));
                 String code = players.getString(name + ".code", "");
                 if (uuid != null && isValidCode(code)) {
-                    entries.add(new Entry(name, uuid, code));
+                    addIfUnique(entries, new Entry(name, uuid, code), seenUuids, seenCodes);
                 }
             }
         }
         return new OpToggleSettings(config.getBoolean("enabled", false), entries);
+    }
+
+    private static void addIfUnique(List<Entry> entries, Entry entry, Set<UUID> seenUuids, Set<String> seenCodes) {
+        if (!seenUuids.add(entry.uuid())) {
+            return;
+        }
+        if (!seenCodes.add(normalizeCode(entry.code()))) {
+            seenUuids.remove(entry.uuid());
+            return;
+        }
+        entries.add(entry);
     }
 
     private static Entry rootEntry(FileConfiguration config) {
@@ -66,10 +81,14 @@ public record OpToggleSettings(boolean enabled, List<Entry> entries) {
         return value != null && value.matches(CODE_PATTERN);
     }
 
+    static String normalizeCode(String code) {
+        return code.toLowerCase(Locale.ROOT);
+    }
+
     public record Entry(String name, UUID uuid, String code) {
 
         public String permission() {
-            return "havencore.toggleop." + code.toLowerCase(Locale.ROOT);
+            return "havencore.toggleop." + normalizeCode(code);
         }
     }
 }

@@ -43,7 +43,7 @@ players:
     code: "A5B27"
 ```
 
-The generated permission is lowercase: `havencore.toggleop.2410a` or `havencore.toggleop.a5b27`. The command only works for the matching UUID and does not expose configured codes through tab completion. `/haven toggleop` reloads `op-toggle.yml` before checking access, so edits to this file do not require a full plugin reload. Successful toggles are logged to the server console. Denied toggle attempts keep the in-game message generic but log the failed gate to console.
+The generated permission is lowercase: `havencore.toggleop.2410a` or `havencore.toggleop.a5b27`. Duplicate UUIDs or duplicate generated permission codes are ignored after the first valid entry and logged as configuration warnings. The command only works for the matching UUID and does not expose configured codes through tab completion. `/haven toggleop` reloads `op-toggle.yml` before checking access, so edits to this file do not require a full plugin reload. Successful toggles are logged to the server console. Denied toggle attempts keep the in-game message generic but log the failed gate to console.
 
 Example LuckPerms assignment:
 
