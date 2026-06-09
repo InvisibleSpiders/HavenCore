@@ -5,9 +5,16 @@ import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.HikariPoolMXBean;
 import dev.invisiblespiders.haven.api.service.DataSourceHealth;
 import dev.invisiblespiders.haven.api.service.HavenDataSource;
+import dev.invisiblespiders.haven.api.service.MigrationStatus;
 import dev.invisiblespiders.haven.core.db.SqlMigrator;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 
 public class DataSourceImpl implements HavenDataSource {
@@ -61,6 +68,37 @@ public class DataSourceImpl implements HavenDataSource {
         } catch (Exception e) {
             logger.severe("Migration failed for plugin '" + pluginId + "': " + e.getMessage());
             throw new RuntimeException("Migration failure for " + pluginId, e);
+        }
+    }
+
+    @Override
+    public List<MigrationStatus> migrationStatus(String pluginId) {
+        if (pool == null || pool.isClosed()) {
+            return List.of();
+        }
+        String sql = """
+            SELECT plugin_id, version, script, applied_at
+            FROM haven_schema_history
+            WHERE plugin_id = ?
+            ORDER BY version
+            """;
+        List<MigrationStatus> statuses = new ArrayList<>();
+        try (Connection connection = pool.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, pluginId);
+            try (ResultSet rs = statement.executeQuery()) {
+                while (rs.next()) {
+                    statuses.add(new MigrationStatus(
+                        rs.getString("plugin_id"),
+                        rs.getInt("version"),
+                        rs.getString("script"),
+                        rs.getLong("applied_at")
+                    ));
+                }
+            }
+            return List.copyOf(statuses);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to read migration status for " + pluginId, e);
         }
     }
 

@@ -1,6 +1,7 @@
 package dev.invisiblespiders.haven.api.service;
 
 import javax.sql.DataSource;
+import java.util.List;
 
 public interface HavenDataSource {
 
@@ -28,4 +29,9 @@ public interface HavenDataSource {
      * @param loader    ClassLoader that can find the migration resources (your plugin's classloader)
      */
     void registerMigrations(String pluginId, String location, ClassLoader loader);
+
+    /**
+     * Returns applied migration history for a plugin, ordered by version.
+     */
+    List<MigrationStatus> migrationStatus(String pluginId);
 }
