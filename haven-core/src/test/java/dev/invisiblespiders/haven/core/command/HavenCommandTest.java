@@ -60,6 +60,40 @@ class HavenCommandTest {
     }
 
     @Test
+    void permissionFailuresUseConfiguredNoPermissionMessage() {
+        Plugin plugin = mockPluginWithServices();
+        ConfigManager config = mock(ConfigManager.class);
+        when(config.getMessage("haven.no-permission")).thenReturn("<red>Custom denied.");
+        HavenHookRegistry hooks = mock(HavenHookRegistry.class);
+        CommandSender sender = mock(CommandSender.class);
+        when(sender.hasPermission("haven.use")).thenReturn(false);
+
+        HavenCommand command = new HavenCommand(plugin, config, hooks);
+
+        command.onCommand(sender, mock(Command.class), "haven", new String[] {"status"});
+
+        List<String> messages = sentPlainMessages(sender);
+        assertTrue(messages.stream().anyMatch(message -> message.contains("Custom denied.")));
+    }
+
+    @Test
+    void permissionFailuresUseFallbackWhenConfiguredMessageIsBlank() {
+        Plugin plugin = mockPluginWithServices();
+        ConfigManager config = mock(ConfigManager.class);
+        when(config.getMessage("haven.no-permission")).thenReturn("");
+        HavenHookRegistry hooks = mock(HavenHookRegistry.class);
+        CommandSender sender = mock(CommandSender.class);
+        when(sender.hasPermission("haven.use")).thenReturn(false);
+
+        HavenCommand command = new HavenCommand(plugin, config, hooks);
+
+        command.onCommand(sender, mock(Command.class), "haven", new String[] {"status"});
+
+        List<String> messages = sentPlainMessages(sender);
+        assertTrue(messages.stream().anyMatch(message -> message.contains("No permission.")));
+    }
+
+    @Test
     void statusShowsHookEconomyAndServiceHealth() {
         Plugin plugin = mockPluginWithServices();
         ConfigManager config = mock(ConfigManager.class);
