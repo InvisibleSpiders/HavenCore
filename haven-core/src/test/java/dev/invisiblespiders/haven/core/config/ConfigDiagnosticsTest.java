@@ -145,6 +145,27 @@ class ConfigDiagnosticsTest {
         assertTrue(records.isEmpty());
     }
 
+    @Test
+    void collectWarningsReturnsStartupDiagnosticMessages() {
+        ConfigManager config = org.mockito.Mockito.mock(ConfigManager.class);
+        YamlConfiguration database = new YamlConfiguration();
+        database.set("type", "postgres");
+        org.mockito.Mockito.when(config.getDatabase()).thenReturn(database);
+        org.mockito.Mockito.when(config.getEconomy()).thenReturn(new YamlConfiguration());
+        YamlConfiguration storage = new YamlConfiguration();
+        storage.set("defaults.rows", 3);
+        org.mockito.Mockito.when(config.getStorage()).thenReturn(storage);
+        YamlConfiguration hooks = new YamlConfiguration();
+        hooks.set("hooks.luckperms.enabled", false);
+        org.mockito.Mockito.when(config.getHooks()).thenReturn(hooks);
+        org.mockito.Mockito.when(config.getOpToggle()).thenReturn(new YamlConfiguration());
+
+        List<String> warnings = ConfigDiagnostics.collectWarnings(config, false);
+
+        assertEquals(1, warnings.size());
+        assertTrue(warnings.get(0).contains("database.yml type 'postgres'"));
+    }
+
     private static Logger logger(List<LogRecord> records) {
         Logger logger = Logger.getLogger("ConfigDiagnosticsTest-" + System.nanoTime());
         logger.setUseParentHandlers(false);

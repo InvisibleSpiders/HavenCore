@@ -6,6 +6,7 @@ import dev.invisiblespiders.haven.api.service.HavenDataSource;
 import dev.invisiblespiders.haven.api.service.HavenEconomyService;
 import dev.invisiblespiders.haven.api.service.HavenHookRegistry;
 import dev.invisiblespiders.haven.api.service.HavenStorageService;
+import dev.invisiblespiders.haven.core.config.ConfigDiagnostics;
 import dev.invisiblespiders.haven.core.config.ConfigManager;
 import dev.invisiblespiders.haven.core.service.OpToggleService;
 import org.bukkit.plugin.Plugin;
@@ -62,7 +63,15 @@ public class CoreDiagnostics {
         if (!missing.isEmpty()) {
             return fail("config", "Missing loaded config sections: " + String.join(", ", missing));
         }
+        List<String> warnings = ConfigDiagnostics.collectWarnings(config, isLuckPermsInstalled());
+        if (!warnings.isEmpty()) {
+            return warn("config", warnings.size() + " config warning(s): " + String.join(" | ", warnings));
+        }
         return pass("config", "All HavenCore config files are loaded.");
+    }
+
+    private boolean isLuckPermsInstalled() {
+        return plugin.getServer().getPluginManager().getPlugin("LuckPerms") != null;
     }
 
     private DiagnosticResult checkDatabase(ServicesManager services) {

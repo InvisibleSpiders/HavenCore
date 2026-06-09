@@ -80,6 +80,25 @@ class CoreDiagnosticsTest {
         verify(connection).close();
     }
 
+    @Test
+    void reportsConfigWarningsWhenLoadedConfigHasInvalidValues() {
+        Plugin plugin = mock(Plugin.class, RETURNS_DEEP_STUBS);
+        ConfigManager config = loadedConfig();
+        config.getDatabase().set("type", "postgres");
+        HavenHookRegistry hooks = mock(HavenHookRegistry.class);
+        when(hooks.getAll()).thenReturn(List.of());
+
+        CoreDiagnostics diagnostics = new CoreDiagnostics(plugin, config, hooks, null, null);
+
+        DiagnosticResult result = diagnostics.run().stream()
+            .filter(candidate -> candidate.id().equals("config"))
+            .findFirst()
+            .orElseThrow();
+
+        assertEquals(DiagnosticSeverity.WARN, result.severity());
+        assertTrue(result.message().contains("database.yml type 'postgres'"));
+    }
+
     private static ConfigManager loadedConfig() {
         ConfigManager config = mock(ConfigManager.class);
         when(config.getMain()).thenReturn(new YamlConfiguration());
