@@ -59,4 +59,14 @@ class CooldownServiceTest {
         service.set(player, "test", 60_000);
         assertFalse(service.isActive(other, "test"));
     }
+
+    @Test
+    void clearPrunesEmptyInnerMap() {
+        service.set(player, "test", 60_000);
+        service.clear(player, "test");
+        // After clearing the only key, subsequent set should not throw and should work
+        assertFalse(service.isActive(player, "test"));
+        service.set(player, "test", 60_000);
+        assertTrue(service.isActive(player, "test"));
+    }
 }

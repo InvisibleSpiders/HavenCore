@@ -63,23 +63,11 @@ public class StorageServiceImpl implements HavenStorageService {
                 UUID.randomUUID(), ownerUuid, name, rows, System.currentTimeMillis()
             );
             try {
-                enforceInventoryLimit(ownerUuid);
-                repo.save(inv);
+                repo.save(inv, settings.maxPerPlayer());
             }
             catch (SQLException e) { throw new RuntimeException("Failed to create virtual inventory", e); }
             return inv;
         }, asyncExecutor);
-    }
-
-    private void enforceInventoryLimit(UUID ownerUuid) throws SQLException {
-        int maxPerPlayer = settings.maxPerPlayer();
-        if (maxPerPlayer <= 0) {
-            return;
-        }
-
-        if (repo.findByOwner(ownerUuid).size() >= maxPerPlayer) {
-            throw new IllegalStateException("Player has reached the maximum virtual inventory limit.");
-        }
     }
 
     @Override

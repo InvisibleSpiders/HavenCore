@@ -48,14 +48,29 @@ public class VirtualInventoryRepository {
     }
 
     public void save(VirtualInventory inv) throws SQLException {
+        save(inv, 0);
+    }
+
+    public void save(VirtualInventory inv, int maxPerOwner) throws SQLException {
         String upsert = """
             INSERT INTO haven_virtual_inventories (id, owner_uuid, name, rows, created_at)
             VALUES (?, ?, ?, ?, ?)
-            ON CONFLICT(id) DO UPDATE SET name = excluded.name
+            ON CONFLICT(id) DO UPDATE SET name = excluded.name, rows = excluded.rows
             """;
         try (Connection c = ds.getConnection()) {
             c.setAutoCommit(false);
             try {
+                if (maxPerOwner > 0) {
+                    String countSql = "SELECT COUNT(*) FROM haven_virtual_inventories WHERE owner_uuid = ?";
+                    try (PreparedStatement ps = c.prepareStatement(countSql)) {
+                        ps.setString(1, inv.getOwnerUuid().toString());
+                        try (ResultSet rs = ps.executeQuery()) {
+                            if (rs.next() && rs.getInt(1) >= maxPerOwner) {
+                                throw new IllegalStateException("Player has reached the maximum virtual inventory limit.");
+                            }
+                        }
+                    }
+                }
                 try (PreparedStatement ps = c.prepareStatement(upsert)) {
                     ps.setString(1, inv.getId().toString());
                     ps.setString(2, inv.getOwnerUuid().toString());
@@ -69,6 +84,9 @@ public class VirtualInventoryRepository {
             } catch (SQLException | IOException e) {
                 c.rollback();
                 throw new SQLException("Failed to save virtual inventory " + inv.getId(), e);
+            } catch (IllegalStateException e) {
+                c.rollback();
+                throw e;
             } finally {
                 c.setAutoCommit(true);
             }

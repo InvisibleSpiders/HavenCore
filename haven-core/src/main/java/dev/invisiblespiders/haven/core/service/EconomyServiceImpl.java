@@ -38,6 +38,7 @@ public class EconomyServiceImpl implements HavenEconomyService {
 
     @Override
     public boolean withdraw(UUID uuid, double amount) {
+        if (preferredAdapter == EconomySettings.Adapter.ITEM) return false;
         boolean ok = money.withdraw(uuid, amount);
         if (ok) eventBus.publish(new HavenEconomyTransactionEvent(uuid, amount, HavenEconomyTransactionEvent.Type.WITHDRAW));
         return ok;
@@ -45,13 +46,17 @@ public class EconomyServiceImpl implements HavenEconomyService {
 
     @Override
     public boolean deposit(UUID uuid, double amount) {
+        if (preferredAdapter == EconomySettings.Adapter.ITEM) return false;
         boolean ok = money.deposit(uuid, amount);
         if (ok) eventBus.publish(new HavenEconomyTransactionEvent(uuid, amount, HavenEconomyTransactionEvent.Type.DEPOSIT));
         return ok;
     }
 
     @Override
-    public boolean has(UUID uuid, double amount) { return money.has(uuid, amount); }
+    public boolean has(UUID uuid, double amount) {
+        if (preferredAdapter == EconomySettings.Adapter.ITEM) return false;
+        return money.has(uuid, amount);
+    }
 
     @Override
     public String format(double amount) { return money.format(amount); }

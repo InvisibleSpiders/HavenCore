@@ -60,9 +60,11 @@ public class PlayerServiceImpl implements HavenPlayerService, Listener {
                     player.setLastSeen(System.currentTimeMillis());
                 }
                 repo.upsert(player);
-                cache.put(uuid, player);
-                eventBus.publish(new HavenPlayerProfileLoadEvent(player, firstJoin));
-                if (firstJoin) eventBus.publish(new HavenPlayerFirstJoinEvent(player));
+                if (plugin.getServer().getPlayer(uuid) != null) {
+                    cache.put(uuid, player);
+                    eventBus.publish(new HavenPlayerProfileLoadEvent(player, firstJoin));
+                    if (firstJoin) eventBus.publish(new HavenPlayerFirstJoinEvent(player));
+                }
             } catch (Exception e) {
                 logger.warning("Failed to load profile for " + name + ": " + e.getMessage());
             }
@@ -74,6 +76,7 @@ public class PlayerServiceImpl implements HavenPlayerService, Listener {
         UUID uuid = event.getPlayer().getUniqueId();
         HavenPlayer player = cache.remove(uuid);
         if (player != null) {
+            player.setLastSeen(System.currentTimeMillis());
             CompletableFuture.runAsync(() -> {
                 try { repo.upsert(player); }
                 catch (Exception e) { logger.warning("Failed to save profile on quit for " + uuid + ": " + e.getMessage()); }

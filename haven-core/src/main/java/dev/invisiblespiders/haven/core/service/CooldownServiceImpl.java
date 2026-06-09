@@ -34,7 +34,9 @@ public class CooldownServiceImpl implements HavenCooldownService {
     @Override
     public void clear(UUID playerUuid, String key) {
         Map<String, Long> m = store.get(playerUuid);
-        if (m != null) m.remove(key);
+        if (m == null) return;
+        m.remove(key);
+        if (m.isEmpty()) store.remove(playerUuid, m);
     }
 
     @Override

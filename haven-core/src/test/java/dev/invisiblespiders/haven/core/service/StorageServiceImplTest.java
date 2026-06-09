@@ -19,7 +19,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import java.sql.SQLException;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import java.util.logging.Logger;
@@ -40,7 +39,7 @@ class StorageServiceImplTest {
 
         assertEquals(4, created.getRows());
         ArgumentCaptor<VirtualInventory> inventoryCaptor = ArgumentCaptor.forClass(VirtualInventory.class);
-        verify(repo).save(inventoryCaptor.capture());
+        verify(repo).save(inventoryCaptor.capture(), eq(0));
         assertEquals(4, inventoryCaptor.getValue().getRows());
     }
 
@@ -60,7 +59,8 @@ class StorageServiceImplTest {
     void createFailsWhenOwnerHasReachedConfiguredInventoryLimit() throws SQLException {
         VirtualInventoryRepository repo = mock(VirtualInventoryRepository.class);
         UUID ownerUuid = UUID.randomUUID();
-        when(repo.findByOwner(ownerUuid)).thenReturn(List.of(inventory(), inventory()));
+        doThrow(new IllegalStateException("Player has reached the maximum virtual inventory limit."))
+            .when(repo).save(any(VirtualInventory.class), eq(2));
         StorageServiceImpl service = newService(mock(Plugin.class), repo, new StorageSettings(3, 2));
 
         CompletionException error = assertThrows(
@@ -70,7 +70,6 @@ class StorageServiceImplTest {
 
         assertInstanceOf(IllegalStateException.class, error.getCause());
         assertTrue(error.getCause().getMessage().contains("maximum"));
-        verify(repo, never()).save(any(VirtualInventory.class));
     }
 
     @Test
