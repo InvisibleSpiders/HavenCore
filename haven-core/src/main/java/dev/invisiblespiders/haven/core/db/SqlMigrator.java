@@ -37,23 +37,38 @@ public final class SqlMigrator {
             throws SQLException, IOException {
 
         List<String> files = readIndex(basePath, loader);
+        validateIndex(files);
 
         try (Connection c = ds.getConnection()) {
             ensureHistoryTable(c);
             Set<Integer> applied = appliedVersions(c, pluginId);
 
             for (String file : files) {
-                Matcher m = VERSION_PATTERN.matcher(file);
-                if (!m.matches()) {
-                    throw new IOException("Bad migration filename (expected V<n>__name.sql): " + file);
-                }
-                int version = Integer.parseInt(m.group(1));
+                int version = migrationVersion(file);
                 if (applied.contains(version)) continue;
 
                 String sql = readResource(basePath + "/" + file, loader);
                 applyMigration(c, pluginId, version, file, sql);
             }
         }
+    }
+
+    private static void validateIndex(List<String> files) throws IOException {
+        Set<Integer> versions = new HashSet<>();
+        for (String file : files) {
+            int version = migrationVersion(file);
+            if (!versions.add(version)) {
+                throw new IOException("Duplicate migration version " + version + " in migrations.index: " + file);
+            }
+        }
+    }
+
+    private static int migrationVersion(String file) throws IOException {
+        Matcher m = VERSION_PATTERN.matcher(file);
+        if (!m.matches()) {
+            throw new IOException("Bad migration filename (expected V<n>__name.sql): " + file);
+        }
+        return Integer.parseInt(m.group(1));
     }
 
     private static List<String> readIndex(String basePath, ClassLoader loader) throws IOException {
