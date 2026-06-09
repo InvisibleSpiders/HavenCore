@@ -127,6 +127,44 @@ class ConfigDiagnosticsTest {
     }
 
     @Test
+    void warnsForUnknownConfigurationKeys() {
+        YamlConfiguration database = new YamlConfiguration();
+        database.set("type", "sqlite");
+        database.set("sqltie.file", "typo.db");
+
+        YamlConfiguration economy = new YamlConfiguration();
+        economy.set("item-currency.enabled", false);
+        economy.set("item-currency.bad-key", true);
+
+        YamlConfiguration storage = new YamlConfiguration();
+        storage.set("defaults.rows", 3);
+        storage.set("default.rows", 4);
+
+        YamlConfiguration hooks = new YamlConfiguration();
+        hooks.set("hooks.luckperms.enabled", false);
+
+        YamlConfiguration opToggle = new YamlConfiguration();
+        opToggle.set("enabled", false);
+        opToggle.set("players.InvisibleSpiders.uuid", "00000000-0000-0000-0000-000000000001");
+        opToggle.set("players.InvisibleSpiders.code", "A5B27");
+        opToggle.set("players.InvisibleSpiders.note", "typo");
+
+        List<LogRecord> records = new ArrayList<>();
+        ConfigDiagnostics.logWarnings(database, economy, storage, hooks, opToggle, logger(records));
+
+        List<String> messages = records.stream()
+            .filter(record -> record.getLevel() == Level.WARNING)
+            .map(LogRecord::getMessage)
+            .toList();
+
+        assertEquals(4, messages.size());
+        assertTrue(messages.stream().anyMatch(message -> message.contains("database.yml unknown key 'sqltie'")));
+        assertTrue(messages.stream().anyMatch(message -> message.contains("economy.yml unknown key 'item-currency.bad-key'")));
+        assertTrue(messages.stream().anyMatch(message -> message.contains("storage.yml unknown key 'default'")));
+        assertTrue(messages.stream().anyMatch(message -> message.contains("op-toggle.yml unknown key 'players.InvisibleSpiders.note'")));
+    }
+
+    @Test
     void acceptsEnabledLuckPermsWhenPluginIsInstalled() {
         YamlConfiguration database = new YamlConfiguration();
         database.set("type", "sqlite");
