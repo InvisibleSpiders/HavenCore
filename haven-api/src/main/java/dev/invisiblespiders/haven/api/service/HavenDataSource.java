@@ -24,14 +24,18 @@ public interface HavenDataSource {
      * filenames (one per line), each named {@code V<number>__<name>.sql}. Applied
      * versions are tracked per plugin in the shared {@code haven_schema_history} table.
      *
-     * @param pluginId  short stable ID, e.g. "havenclaims" — namespaces applied versions
+     * @param pluginId  short stable ID, e.g. "havenclaims"; namespaces applied versions
      * @param location  classpath base path of the migrations, e.g. "db/migrations/havenclaims"
      * @param loader    ClassLoader that can find the migration resources (your plugin's classloader)
+     * @throws IllegalArgumentException if pluginId or location is blank, or loader is null
+     * @throws IllegalStateException if the shared database pool is not initialized or already closed
      */
     void registerMigrations(String pluginId, String location, ClassLoader loader);
 
     /**
      * Returns applied migration history for a plugin, ordered by version.
+     *
+     * @throws IllegalArgumentException if pluginId is blank
      */
     List<MigrationStatus> migrationStatus(String pluginId);
 }

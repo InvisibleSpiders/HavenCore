@@ -62,17 +62,22 @@ public class DataSourceImpl implements HavenDataSource {
 
     @Override
     public void registerMigrations(String pluginId, String location, ClassLoader loader) {
+        String validPluginId = requireText(pluginId, "pluginId");
+        String validLocation = requireText(location, "location");
+        ClassLoader validLoader = requireLoader(loader);
+        HikariDataSource dataSource = requireOpenPool();
         try {
-            SqlMigrator.migrate(pool, pluginId, location, loader);
-            logger.fine("Migrations complete for: " + pluginId);
+            SqlMigrator.migrate(dataSource, validPluginId, validLocation, validLoader);
+            logger.fine("Migrations complete for: " + validPluginId);
         } catch (Exception e) {
-            logger.severe("Migration failed for plugin '" + pluginId + "': " + e.getMessage());
-            throw new RuntimeException("Migration failure for " + pluginId, e);
+            logger.severe("Migration failed for plugin '" + validPluginId + "': " + e.getMessage());
+            throw new RuntimeException("Migration failure for " + validPluginId, e);
         }
     }
 
     @Override
     public List<MigrationStatus> migrationStatus(String pluginId) {
+        String validPluginId = requireText(pluginId, "pluginId");
         if (pool == null || pool.isClosed()) {
             return List.of();
         }
@@ -85,7 +90,7 @@ public class DataSourceImpl implements HavenDataSource {
         List<MigrationStatus> statuses = new ArrayList<>();
         try (Connection connection = pool.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setString(1, pluginId);
+            statement.setString(1, validPluginId);
             try (ResultSet rs = statement.executeQuery()) {
                 while (rs.next()) {
                     statuses.add(new MigrationStatus(
@@ -98,7 +103,7 @@ public class DataSourceImpl implements HavenDataSource {
             }
             return List.copyOf(statuses);
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to read migration status for " + pluginId, e);
+            throw new RuntimeException("Failed to read migration status for " + validPluginId, e);
         }
     }
 
@@ -107,5 +112,29 @@ public class DataSourceImpl implements HavenDataSource {
             pool.close();
             logger.info("Database pool closed.");
         }
+    }
+
+    private HikariDataSource requireOpenPool() {
+        if (pool == null) {
+            throw new IllegalStateException("Database pool is not initialized.");
+        }
+        if (pool.isClosed()) {
+            throw new IllegalStateException("Database pool is closed.");
+        }
+        return pool;
+    }
+
+    private static String requireText(String value, String name) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(name + " must not be blank.");
+        }
+        return value;
+    }
+
+    private static ClassLoader requireLoader(ClassLoader loader) {
+        if (loader == null) {
+            throw new IllegalArgumentException("loader must not be null.");
+        }
+        return loader;
     }
 }

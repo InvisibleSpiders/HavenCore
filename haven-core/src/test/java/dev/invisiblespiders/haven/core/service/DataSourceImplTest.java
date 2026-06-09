@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DataSourceImplTest {
@@ -76,6 +77,56 @@ class DataSourceImplTest {
         } finally {
             dataSource.close();
         }
+    }
+
+    @Test
+    void registerMigrationsRejectsBlankPluginId() {
+        DataSourceImpl dataSource = new DataSourceImpl(Logger.getLogger(getClass().getName()));
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+            () -> dataSource.registerMigrations(" ", "db/migrations/haven", getClass().getClassLoader()));
+
+        assertTrue(error.getMessage().contains("pluginId"));
+    }
+
+    @Test
+    void registerMigrationsRejectsBlankLocation() {
+        DataSourceImpl dataSource = new DataSourceImpl(Logger.getLogger(getClass().getName()));
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+            () -> dataSource.registerMigrations("havenclaims", "", getClass().getClassLoader()));
+
+        assertTrue(error.getMessage().contains("location"));
+    }
+
+    @Test
+    void registerMigrationsRejectsNullLoader() {
+        DataSourceImpl dataSource = new DataSourceImpl(Logger.getLogger(getClass().getName()));
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+            () -> dataSource.registerMigrations("havenclaims", "db/migrations/havenclaims", null));
+
+        assertTrue(error.getMessage().contains("loader"));
+    }
+
+    @Test
+    void registerMigrationsRequiresInitializedPool() {
+        DataSourceImpl dataSource = new DataSourceImpl(Logger.getLogger(getClass().getName()));
+
+        IllegalStateException error = assertThrows(IllegalStateException.class,
+            () -> dataSource.registerMigrations("havenclaims", "db/migrations/havenclaims", getClass().getClassLoader()));
+
+        assertTrue(error.getMessage().contains("not initialized"));
+    }
+
+    @Test
+    void migrationStatusRejectsBlankPluginId() {
+        DataSourceImpl dataSource = new DataSourceImpl(Logger.getLogger(getClass().getName()));
+
+        IllegalArgumentException error = assertThrows(IllegalArgumentException.class,
+            () -> dataSource.migrationStatus("\t"));
+
+        assertTrue(error.getMessage().contains("pluginId"));
     }
 
     private static HikariConfig sqliteConfig() {

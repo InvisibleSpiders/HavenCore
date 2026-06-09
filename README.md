@@ -55,7 +55,7 @@ When OP toggle is enabled, `/haven status` shows whether the feature is enabled 
 
 ## Database API
 
-Plugins can load `HavenDataSource` from Bukkit services for shared connections and migrations. `HavenDataSource.health()` returns a lightweight `DataSourceHealth` snapshot with initialized/open state plus Hikari pool counts for admin diagnostics. `HavenDataSource.migrationStatus(pluginId)` returns applied migration versions, scripts, and timestamps for a plugin.
+Plugins can load `HavenDataSource` from Bukkit services for shared connections and migrations. `HavenDataSource.health()` returns a lightweight `DataSourceHealth` snapshot with initialized/open state plus Hikari pool counts for admin diagnostics. Migration plugin IDs and locations must be stable, nonblank values. `HavenDataSource.migrationStatus(pluginId)` returns applied migration versions, scripts, and timestamps for a plugin.
 
 ## Optional Hooks
 
