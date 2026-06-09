@@ -1,6 +1,8 @@
 package dev.invisiblespiders.haven.core.diagnostic;
 
 import dev.invisiblespiders.haven.api.hook.HavenHook;
+import dev.invisiblespiders.haven.api.diagnostic.DiagnosticResult;
+import dev.invisiblespiders.haven.api.diagnostic.DiagnosticSeverity;
 import dev.invisiblespiders.haven.api.service.HavenCodexService;
 import dev.invisiblespiders.haven.api.service.HavenDataSource;
 import dev.invisiblespiders.haven.api.service.HavenEconomyService;

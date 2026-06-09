@@ -64,3 +64,23 @@ HavenCore soft-depends on these plugins when present so integrations load in the
 | `Vault` / `VaultUnlocked` | Economy bridge through the VaultUnlocked API. |
 | `PlaceholderAPI` | Placeholder integration hook. |
 | `LuckPerms` | Tier metadata lookup support. |
+
+## Diagnostic API
+
+Other Haven suite plugins can load `HavenDiagnosticService` from Bukkit services and register named checks for `/haven doctor`. Checks are scoped by owner id and should return `DiagnosticResult.pass`, `DiagnosticResult.warn`, or `DiagnosticResult.fail`.
+
+```java
+diagnostics.register("haventeleport", new HavenDiagnosticCheck() {
+    @Override
+    public String id() {
+        return "database";
+    }
+
+    @Override
+    public DiagnosticResult run() {
+        return DiagnosticResult.pass("haventeleport.database", "Database is reachable.");
+    }
+});
+```
+
+Call `unregisterAll("your-plugin-id")` during plugin disable to remove checks owned by that plugin.

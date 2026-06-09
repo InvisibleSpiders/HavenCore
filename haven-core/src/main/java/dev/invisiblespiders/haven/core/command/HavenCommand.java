@@ -1,16 +1,17 @@
 package dev.invisiblespiders.haven.core.command;
 
+import dev.invisiblespiders.haven.api.diagnostic.DiagnosticResult;
+import dev.invisiblespiders.haven.api.diagnostic.DiagnosticSeverity;
 import dev.invisiblespiders.haven.api.hook.HavenHook;
 import dev.invisiblespiders.haven.api.service.HavenCodexService;
 import dev.invisiblespiders.haven.api.service.HavenDataSource;
+import dev.invisiblespiders.haven.api.service.HavenDiagnosticService;
 import dev.invisiblespiders.haven.api.service.HavenEconomyService;
 import dev.invisiblespiders.haven.api.service.HavenHookRegistry;
 import dev.invisiblespiders.haven.api.service.HavenStorageService;
 import dev.invisiblespiders.haven.core.config.ConfigManager;
 import dev.invisiblespiders.haven.core.config.OpToggleSettings;
 import dev.invisiblespiders.haven.core.diagnostic.CoreDiagnostics;
-import dev.invisiblespiders.haven.core.diagnostic.DiagnosticResult;
-import dev.invisiblespiders.haven.core.diagnostic.DiagnosticSeverity;
 import dev.invisiblespiders.haven.core.hook.VaultUnlockedHook;
 import dev.invisiblespiders.haven.core.service.OpToggleService;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -35,6 +36,7 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
     private final HavenHookRegistry hooks;
     private final ExecutorService asyncExecutor;
     private final OpToggleService opToggleService;
+    private final HavenDiagnosticService diagnosticService;
 
     public HavenCommand(Plugin plugin, ConfigManager config, HavenHookRegistry hooks) {
         this(plugin, config, hooks, null, null);
@@ -46,11 +48,18 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
 
     public HavenCommand(Plugin plugin, ConfigManager config, HavenHookRegistry hooks,
                         ExecutorService asyncExecutor, OpToggleService opToggleService) {
+        this(plugin, config, hooks, asyncExecutor, opToggleService, null);
+    }
+
+    public HavenCommand(Plugin plugin, ConfigManager config, HavenHookRegistry hooks,
+                        ExecutorService asyncExecutor, OpToggleService opToggleService,
+                        HavenDiagnosticService diagnosticService) {
         this.plugin = plugin;
         this.config = config;
         this.hooks = hooks;
         this.asyncExecutor = asyncExecutor;
         this.opToggleService = opToggleService;
+        this.diagnosticService = diagnosticService;
     }
 
     @Override
@@ -149,9 +158,12 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
     }
 
     private void sendDoctor(CommandSender sender) {
-        List<DiagnosticResult> results = new CoreDiagnostics(
+        List<DiagnosticResult> results = new ArrayList<>(new CoreDiagnostics(
             plugin, config, hooks, asyncExecutor, opToggleService
-        ).run();
+        ).run());
+        if (diagnosticService != null) {
+            results.addAll(diagnosticService.runAll());
+        }
         sender.sendMessage(MM.deserialize("<gold><bold>HavenCore Doctor</bold>"));
         for (DiagnosticResult result : results) {
             sender.sendMessage(MM.deserialize("  " + diagnosticColor(result.severity())
