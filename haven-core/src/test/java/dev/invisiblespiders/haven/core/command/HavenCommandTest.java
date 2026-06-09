@@ -23,6 +23,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -132,12 +134,71 @@ class HavenCommandTest {
         List<String> messages = sentPlainMessages(sender);
         assertTrue(messages.stream().anyMatch(message -> message.contains("/haven status")
             && message.contains("haven.use")));
+        assertTrue(messages.stream().anyMatch(message -> message.contains("/haven doctor")
+            && message.contains("haven.admin.doctor")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("/haven version")
             && message.contains("haven.use")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("/haven reload")
             && message.contains("haven.admin.reload")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("/haven toggleop")
             && message.contains("configured UUID")));
+    }
+
+    @Test
+    void doctorRequiresAdminDoctorPermission() {
+        HavenCommand command = new HavenCommand(
+            mockPluginWithServices(),
+            mock(ConfigManager.class),
+            mock(HavenHookRegistry.class)
+        );
+        CommandSender sender = mock(CommandSender.class);
+        when(sender.hasPermission("haven.admin.doctor")).thenReturn(false);
+
+        command.onCommand(sender, mock(Command.class), "haven", new String[] {"doctor"});
+
+        List<String> messages = sentPlainMessages(sender);
+        assertTrue(messages.stream().anyMatch(message -> message.contains("No permission")));
+    }
+
+    @Test
+    void doctorReportsCoreDiagnosticSummary() throws SQLException {
+        Plugin plugin = mockPluginWithServices();
+        ConfigManager config = mock(ConfigManager.class);
+        stubLoadedConfig(config);
+        HavenHookRegistry hooks = mock(HavenHookRegistry.class);
+        when(hooks.getAll()).thenReturn(List.of());
+        CommandSender sender = mock(CommandSender.class);
+        when(sender.hasPermission("haven.admin.doctor")).thenReturn(true);
+        HavenEconomyService economy = mock(HavenEconomyService.class);
+        when(economy.isMoneyAvailable()).thenReturn(true);
+        HavenDataSource dataSource = mock(HavenDataSource.class);
+        DataSource jdbc = mock(DataSource.class);
+        Connection connection = mock(Connection.class);
+        when(dataSource.getDataSource()).thenReturn(jdbc);
+        when(jdbc.getConnection()).thenReturn(connection);
+        HavenStorageService storage = mock(HavenStorageService.class);
+        HavenCodexService codex = mock(HavenCodexService.class);
+        ExecutorService asyncExecutor = mock(ExecutorService.class);
+        OpToggleService opToggleService = mock(OpToggleService.class);
+
+        ServicesManager services = plugin.getServer().getServicesManager();
+        when(services.load(HavenEconomyService.class)).thenReturn(economy);
+        when(services.load(HavenDataSource.class)).thenReturn(dataSource);
+        when(services.load(HavenStorageService.class)).thenReturn(storage);
+        when(services.load(HavenCodexService.class)).thenReturn(codex);
+
+        HavenCommand command = new HavenCommand(plugin, config, hooks, asyncExecutor, opToggleService);
+
+        command.onCommand(sender, mock(Command.class), "haven", new String[] {"doctor"});
+
+        List<String> messages = sentPlainMessages(sender);
+        assertTrue(messages.stream().anyMatch(message -> message.contains("HavenCore Doctor")));
+        assertTrue(messages.stream().anyMatch(message -> message.contains("PASS") && message.contains("config")));
+        assertTrue(messages.stream().anyMatch(message -> message.contains("PASS") && message.contains("database")));
+        assertTrue(messages.stream().anyMatch(message -> message.contains("WARN") && message.contains("hooks")));
+        assertTrue(messages.stream().anyMatch(message -> message.contains("Summary:")
+            && message.contains("pass=") && message.contains("warn=") && message.contains("fail=0")));
+        verify(connection).close();
     }
 
     @Test
@@ -235,16 +296,29 @@ class HavenCommandTest {
         Player sender = mock(Player.class);
         when(sender.hasPermission("haven.use")).thenReturn(true);
         when(sender.hasPermission("haven.admin.reload")).thenReturn(false);
+        when(sender.hasPermission("haven.admin.doctor")).thenReturn(false);
 
         assertEquals(List.of("help", "status", "toggleop", "version"), command.onTabComplete(
             sender, mock(Command.class), "haven", new String[] {""}
         ));
 
         when(sender.hasPermission("haven.admin.reload")).thenReturn(true);
+        when(sender.hasPermission("haven.admin.doctor")).thenReturn(true);
 
-        assertEquals(List.of("help", "reload", "status", "toggleop", "version"), command.onTabComplete(
+        assertEquals(List.of("doctor", "help", "reload", "status", "toggleop", "version"), command.onTabComplete(
             sender, mock(Command.class), "haven", new String[] {""}
         ));
+    }
+
+    private static void stubLoadedConfig(ConfigManager config) {
+        when(config.getMain()).thenReturn(new YamlConfiguration());
+        when(config.getDatabase()).thenReturn(new YamlConfiguration());
+        when(config.getMessages()).thenReturn(new YamlConfiguration());
+        when(config.getEconomy()).thenReturn(new YamlConfiguration());
+        when(config.getStorage()).thenReturn(new YamlConfiguration());
+        when(config.getCodex()).thenReturn(new YamlConfiguration());
+        when(config.getHooks()).thenReturn(new YamlConfiguration());
+        when(config.getOpToggle()).thenReturn(new YamlConfiguration());
     }
 
     private static Plugin mockPluginWithServices() {
