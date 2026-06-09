@@ -8,6 +8,11 @@ public interface HavenHook {
     /** Returns true if the target plugin is present and usable. */
     boolean isAvailable();
 
+    /** Returns a descriptive hook state for admin diagnostics and status output. */
+    default HavenHookStatus getStatus() {
+        return isAvailable() ? HavenHookStatus.AVAILABLE : HavenHookStatus.MISSING_PLUGIN;
+    }
+
     /** Called when the hook is registered. Connect to the target plugin here. */
     void onEnable();
 

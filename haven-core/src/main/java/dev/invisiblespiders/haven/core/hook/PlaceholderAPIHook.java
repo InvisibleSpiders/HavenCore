@@ -1,6 +1,7 @@
 package dev.invisiblespiders.haven.core.hook;
 
 import dev.invisiblespiders.haven.api.hook.HavenHook;
+import dev.invisiblespiders.haven.api.hook.HavenHookStatus;
 import org.bukkit.Bukkit;
 
 public class PlaceholderAPIHook implements HavenHook {
@@ -17,6 +18,11 @@ public class PlaceholderAPIHook implements HavenHook {
 
     @Override
     public boolean isAvailable() { return available; }
+
+    @Override
+    public HavenHookStatus getStatus() {
+        return available ? HavenHookStatus.AVAILABLE : HavenHookStatus.MISSING_PLUGIN;
+    }
 
     @Override
     public void onDisable() { available = false; }

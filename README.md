@@ -62,3 +62,13 @@ HavenCore soft-depends on these plugins when present so integrations load in the
 | `Vault` / `VaultUnlocked` | Economy bridge through the VaultUnlocked API. |
 | `PlaceholderAPI` | Placeholder integration hook. |
 | `LuckPerms` | Tier metadata lookup support. |
+
+Hook status output uses these labels:
+
+| Status | Meaning |
+| --- | --- |
+| `AVAILABLE` | The hook is loaded and usable. |
+| `DISABLED` | The hook is intentionally disabled. |
+| `MISSING_PLUGIN` | The target plugin is not installed or not detected. |
+| `MISCONFIGURED` | The target plugin is present but a required provider or setup step is missing. |
+| `API_ERROR` | The hook could not initialize because the target API failed unexpectedly. |
