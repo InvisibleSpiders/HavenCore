@@ -1,6 +1,7 @@
 package dev.invisiblespiders.haven.core.command;
 
 import dev.invisiblespiders.haven.api.hook.HavenHook;
+import dev.invisiblespiders.haven.api.service.DataSourceHealth;
 import dev.invisiblespiders.haven.api.service.HavenCodexService;
 import dev.invisiblespiders.haven.api.service.HavenDataSource;
 import dev.invisiblespiders.haven.api.service.HavenEconomyService;
@@ -160,7 +161,7 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
 
     private void sendServiceStatus(CommandSender sender, ServicesManager services) {
         sender.sendMessage(MM.deserialize("<gray>Services:"));
-        sender.sendMessage(MM.deserialize(serviceLine("database", isDatabaseReady(services))));
+        sender.sendMessage(MM.deserialize(databaseLine(services)));
         sender.sendMessage(MM.deserialize(serviceLine("async", isAsyncReady())));
         sender.sendMessage(MM.deserialize(serviceLine("storage", services.load(HavenStorageService.class) != null)));
         sender.sendMessage(MM.deserialize(serviceLine("codex", services.load(HavenCodexService.class) != null)));
@@ -171,11 +172,28 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
         }
     }
 
-    private boolean isDatabaseReady(ServicesManager services) {
+    private String databaseLine(ServicesManager services) {
         HavenDataSource dataSource = services.load(HavenDataSource.class);
         if (dataSource == null) {
-            return false;
+            return serviceLine("database", false);
         }
+        try {
+            DataSourceHealth health = dataSource.health();
+            if (health != null) {
+                boolean ready = health.initialized() && health.open();
+                return serviceLine("database", ready)
+                    + " <gray>active=<white>" + health.activeConnections()
+                    + " <gray>idle=<white>" + health.idleConnections()
+                    + " <gray>total=<white>" + health.totalConnections()
+                    + " <gray>waiting=<white>" + health.threadsAwaitingConnection();
+            }
+        } catch (RuntimeException ignored) {
+            // Fall back to the older readiness probe so status still renders.
+        }
+        return serviceLine("database", isDatabaseReady(dataSource));
+    }
+
+    private boolean isDatabaseReady(HavenDataSource dataSource) {
         try {
             return dataSource.getDataSource() != null;
         } catch (RuntimeException e) {

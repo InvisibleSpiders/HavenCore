@@ -1,5 +1,6 @@
 package dev.invisiblespiders.haven.core.command;
 
+import dev.invisiblespiders.haven.api.service.DataSourceHealth;
 import dev.invisiblespiders.haven.api.service.HavenHookRegistry;
 import dev.invisiblespiders.haven.api.service.HavenCodexService;
 import dev.invisiblespiders.haven.api.service.HavenDataSource;
@@ -78,6 +79,7 @@ class HavenCommandTest {
         when(economy.isItemAvailable()).thenReturn(false);
         HavenDataSource dataSource = mock(HavenDataSource.class);
         when(dataSource.getDataSource()).thenReturn(mock(DataSource.class));
+        when(dataSource.health()).thenReturn(new DataSourceHealth(true, true, 2, 3, 5, 1));
         HavenStorageService storage = mock(HavenStorageService.class);
         HavenCodexService codex = mock(HavenCodexService.class);
         ExecutorService asyncExecutor = mock(ExecutorService.class);
@@ -105,7 +107,11 @@ class HavenCommandTest {
             && message.contains("money=READY") && message.contains("item=UNAVAILABLE")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("Services:")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("database")
-            && message.contains("READY")));
+            && message.contains("READY")
+            && message.contains("active=2")
+            && message.contains("idle=3")
+            && message.contains("total=5")
+            && message.contains("waiting=1")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("async")
             && message.contains("READY")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("storage")
@@ -115,6 +121,30 @@ class HavenCommandTest {
         assertTrue(messages.stream().anyMatch(message -> message.contains("op-toggle")
             && message.contains("ENABLED") && message.contains("entries=1")));
         assertTrue(messages.stream().noneMatch(message -> message.contains("A5B27")));
+    }
+
+    @Test
+    void statusFallsBackWhenDataSourceHealthFails() {
+        Plugin plugin = mockPluginWithServices();
+        ConfigManager config = mock(ConfigManager.class);
+        HavenHookRegistry hooks = mock(HavenHookRegistry.class);
+        when(hooks.getAll()).thenReturn(List.of());
+        CommandSender sender = mock(CommandSender.class);
+        when(sender.hasPermission("haven.use")).thenReturn(true);
+        HavenDataSource dataSource = mock(HavenDataSource.class);
+        when(dataSource.health()).thenThrow(new IllegalStateException("pool unavailable"));
+        when(dataSource.getDataSource()).thenReturn(mock(DataSource.class));
+
+        ServicesManager services = plugin.getServer().getServicesManager();
+        when(services.load(HavenDataSource.class)).thenReturn(dataSource);
+
+        HavenCommand command = new HavenCommand(plugin, config, hooks);
+
+        command.onCommand(sender, mock(Command.class), "haven", new String[] {"status"});
+
+        List<String> messages = sentPlainMessages(sender);
+        assertTrue(messages.stream().anyMatch(message -> message.contains("database")
+            && message.contains("READY")));
     }
 
     @Test
