@@ -55,11 +55,16 @@ public final class SqlMigrator {
 
     private static void validateIndex(List<String> files) throws IOException {
         Set<Integer> versions = new HashSet<>();
+        int previousVersion = 0;
         for (String file : files) {
             int version = migrationVersion(file);
             if (!versions.add(version)) {
                 throw new IOException("Duplicate migration version " + version + " in migrations.index: " + file);
             }
+            if (version <= previousVersion) {
+                throw new IOException("Migration version " + version + " is out of order in migrations.index: " + file);
+            }
+            previousVersion = version;
         }
     }
 

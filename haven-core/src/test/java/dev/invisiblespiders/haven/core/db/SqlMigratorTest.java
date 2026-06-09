@@ -31,6 +31,23 @@ class SqlMigratorTest {
         assertFalse(tableExists(dataSource, "duplicate_marker_second"));
     }
 
+    @Test
+    void outOfOrderMigrationVersionsFailBeforeSqlRuns() throws Exception {
+        SQLiteDataSource dataSource = new SQLiteDataSource();
+        dataSource.setUrl("jdbc:sqlite::memory:");
+
+        IOException error = assertThrows(IOException.class, () -> SqlMigrator.migrate(
+            dataSource,
+            "order-test",
+            "db/migrations/out-of-order",
+            getClass().getClassLoader()
+        ));
+
+        assertTrue(error.getMessage().contains("out of order"));
+        assertFalse(tableExists(dataSource, "order_marker_first"));
+        assertFalse(tableExists(dataSource, "order_marker_second"));
+    }
+
     private static boolean tableExists(SQLiteDataSource dataSource, String tableName) throws SQLException {
         try (Connection connection = dataSource.getConnection();
              ResultSet tables = connection.getMetaData().getTables(null, null, tableName, null)) {
