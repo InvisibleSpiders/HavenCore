@@ -37,6 +37,7 @@ class HavenCommandTest {
     void reloadExplainsThatOnlyConfigurationFilesWereReloaded() {
         Plugin plugin = mock(Plugin.class);
         ConfigManager config = mock(ConfigManager.class);
+        when(config.getMessage("haven.reload-success")).thenReturn("");
         HavenHookRegistry hooks = mock(HavenHookRegistry.class);
         CommandSender sender = mock(CommandSender.class);
         when(sender.hasPermission("haven.admin.reload")).thenReturn(true);
@@ -57,6 +58,23 @@ class HavenCommandTest {
         assertTrue(messages.get(1).contains("hooks"));
         assertTrue(messages.get(1).contains("economy"));
         assertTrue(messages.get(1).contains("database"));
+    }
+
+    @Test
+    void reloadUsesConfiguredSuccessMessage() {
+        Plugin plugin = mock(Plugin.class);
+        ConfigManager config = mock(ConfigManager.class);
+        when(config.getMessage("haven.reload-success")).thenReturn("<green>Custom reload done.");
+        HavenHookRegistry hooks = mock(HavenHookRegistry.class);
+        CommandSender sender = mock(CommandSender.class);
+        when(sender.hasPermission("haven.admin.reload")).thenReturn(true);
+
+        HavenCommand command = new HavenCommand(plugin, config, hooks);
+
+        command.onCommand(sender, mock(Command.class), "haven", new String[] {"reload"});
+
+        List<String> messages = sentPlainMessages(sender);
+        assertTrue(messages.get(0).contains("Custom reload done."));
     }
 
     @Test

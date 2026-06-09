@@ -78,7 +78,10 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
                 if (opToggleService != null) {
                     opToggleService.reload(OpToggleSettings.from(config.getOpToggle()));
                 }
-                sender.sendMessage(MM.deserialize("<green>HavenCore configuration files reloaded."));
+                sender.sendMessage(MM.deserialize(configuredMessage(
+                    "haven.reload-success",
+                    "<green>HavenCore configuration files reloaded."
+                )));
                 sender.sendMessage(MM.deserialize(
                     "<yellow>Restart required for hooks, economy, database, and service wiring changes."
                 ));
