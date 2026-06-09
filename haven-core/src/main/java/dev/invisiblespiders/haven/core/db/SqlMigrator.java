@@ -12,8 +12,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -41,11 +43,15 @@ public final class SqlMigrator {
 
         try (Connection c = ds.getConnection()) {
             ensureHistoryTable(c);
-            Set<Integer> applied = appliedVersions(c, pluginId);
+            Map<Integer, String> applied = appliedMigrations(c, pluginId);
 
             for (String file : files) {
                 int version = migrationVersion(file);
-                if (applied.contains(version)) continue;
+                String appliedScript = applied.get(version);
+                if (appliedScript != null) {
+                    validateAppliedScript(pluginId, version, file, appliedScript);
+                    continue;
+                }
 
                 String sql = readResource(basePath + "/" + file, loader);
                 applyMigration(c, pluginId, version, file, sql);
@@ -111,16 +117,24 @@ public final class SqlMigrator {
         }
     }
 
-    private static Set<Integer> appliedVersions(Connection c, String pluginId) throws SQLException {
-        Set<Integer> versions = new HashSet<>();
-        String sql = "SELECT version FROM haven_schema_history WHERE plugin_id = ?";
+    private static Map<Integer, String> appliedMigrations(Connection c, String pluginId) throws SQLException {
+        Map<Integer, String> migrations = new HashMap<>();
+        String sql = "SELECT version, script FROM haven_schema_history WHERE plugin_id = ?";
         try (PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, pluginId);
             try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) versions.add(rs.getInt(1));
+                while (rs.next()) migrations.put(rs.getInt("version"), rs.getString("script"));
             }
         }
-        return versions;
+        return migrations;
+    }
+
+    private static void validateAppliedScript(String pluginId, int version, String indexedScript, String appliedScript)
+            throws SQLException {
+        if (!indexedScript.equals(appliedScript)) {
+            throw new SQLException("Applied migration version " + version + " for " + pluginId
+                + " was recorded as " + appliedScript + " but migrations.index contains " + indexedScript);
+        }
     }
 
     private static void applyMigration(Connection c, String pluginId, int version, String script, String sql)
