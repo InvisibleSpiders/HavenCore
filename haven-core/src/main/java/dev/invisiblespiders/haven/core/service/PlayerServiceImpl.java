@@ -2,6 +2,7 @@ package dev.invisiblespiders.haven.core.service;
 
 import dev.invisiblespiders.haven.api.event.HavenPlayerFirstJoinEvent;
 import dev.invisiblespiders.haven.api.event.HavenPlayerProfileLoadEvent;
+import dev.invisiblespiders.haven.api.exception.HavenPlayerServiceException;
 import dev.invisiblespiders.haven.api.model.HavenPlayer;
 import dev.invisiblespiders.haven.api.service.HavenEventBus;
 import dev.invisiblespiders.haven.api.service.HavenPlayerService;
@@ -136,7 +137,7 @@ public class PlayerServiceImpl implements HavenPlayerService, Listener {
         if (cached != null) return CompletableFuture.completedFuture(Optional.of(cached));
         return CompletableFuture.supplyAsync(() -> {
             try { return repo.findByUuid(uuid); }
-            catch (Exception e) { throw new RuntimeException(e); }
+            catch (Exception e) { throw new HavenPlayerServiceException("Failed to load player profile " + uuid, e); }
         }, asyncExecutor);
     }
 
@@ -144,7 +145,7 @@ public class PlayerServiceImpl implements HavenPlayerService, Listener {
     public CompletableFuture<Optional<HavenPlayer>> get(String name) {
         return CompletableFuture.supplyAsync(() -> {
             try { return repo.findByName(name); }
-            catch (Exception e) { throw new RuntimeException(e); }
+            catch (Exception e) { throw new HavenPlayerServiceException("Failed to load player profile " + name, e); }
         }, asyncExecutor);
     }
 
@@ -162,7 +163,9 @@ public class PlayerServiceImpl implements HavenPlayerService, Listener {
     public CompletableFuture<Void> save(HavenPlayer player) {
         return CompletableFuture.runAsync(() -> {
             try { repo.upsert(player); }
-            catch (Exception e) { throw new RuntimeException(e); }
+            catch (Exception e) {
+                throw new HavenPlayerServiceException("Failed to save player profile " + player.getUuid(), e);
+            }
         }, asyncExecutor);
     }
 

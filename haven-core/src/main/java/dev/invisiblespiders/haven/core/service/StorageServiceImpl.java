@@ -1,5 +1,6 @@
 package dev.invisiblespiders.haven.core.service;
 
+import dev.invisiblespiders.haven.api.exception.HavenStorageServiceException;
 import dev.invisiblespiders.haven.api.exception.VirtualInventoryLimitException;
 import dev.invisiblespiders.haven.api.event.HavenVirtualStorageOpenEvent;
 import dev.invisiblespiders.haven.api.model.VirtualInventory;
@@ -69,7 +70,7 @@ public class StorageServiceImpl implements HavenStorageService {
             catch (IllegalStateException e) {
                 throw new VirtualInventoryLimitException(e.getMessage(), e);
             }
-            catch (SQLException e) { throw new RuntimeException("Failed to create virtual inventory", e); }
+            catch (SQLException e) { throw new HavenStorageServiceException("Failed to create virtual inventory", e); }
             return inv;
         }, asyncExecutor);
     }
@@ -78,7 +79,7 @@ public class StorageServiceImpl implements HavenStorageService {
     public CompletableFuture<Optional<VirtualInventory>> get(UUID id) {
         return CompletableFuture.supplyAsync(() -> {
             try { return repo.findById(id); }
-            catch (SQLException e) { throw new RuntimeException(e); }
+            catch (SQLException e) { throw new HavenStorageServiceException("Failed to load virtual inventory " + id, e); }
         }, asyncExecutor);
     }
 
@@ -86,7 +87,9 @@ public class StorageServiceImpl implements HavenStorageService {
     public CompletableFuture<List<VirtualInventory>> getByOwner(UUID ownerUuid) {
         return CompletableFuture.supplyAsync(() -> {
             try { return repo.findByOwner(ownerUuid); }
-            catch (SQLException e) { throw new RuntimeException(e); }
+            catch (SQLException e) {
+                throw new HavenStorageServiceException("Failed to load virtual inventories for " + ownerUuid, e);
+            }
         }, asyncExecutor);
     }
 
@@ -113,7 +116,9 @@ public class StorageServiceImpl implements HavenStorageService {
     public CompletableFuture<Void> save(VirtualInventory inv) {
         return CompletableFuture.runAsync(() -> {
             try { repo.save(inv); }
-            catch (SQLException e) { throw new RuntimeException(e); }
+            catch (SQLException e) {
+                throw new HavenStorageServiceException("Failed to save virtual inventory " + inv.getId(), e);
+            }
         }, asyncExecutor);
     }
 
@@ -121,7 +126,7 @@ public class StorageServiceImpl implements HavenStorageService {
     public CompletableFuture<Void> delete(UUID id) {
         return CompletableFuture.runAsync(() -> {
             try { repo.delete(id); }
-            catch (SQLException e) { throw new RuntimeException(e); }
+            catch (SQLException e) { throw new HavenStorageServiceException("Failed to delete virtual inventory " + id, e); }
         }, asyncExecutor);
     }
 }

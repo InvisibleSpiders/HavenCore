@@ -1,5 +1,6 @@
 package dev.invisiblespiders.haven.core.service;
 
+import dev.invisiblespiders.haven.api.exception.HavenPlayerServiceException;
 import dev.invisiblespiders.haven.api.event.HavenEvent;
 import dev.invisiblespiders.haven.api.model.HavenPlayer;
 import dev.invisiblespiders.haven.api.event.HavenPlayerProfileLoadEvent;
@@ -20,6 +21,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.UUID;
+import java.sql.SQLException;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -27,6 +30,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
@@ -132,6 +136,28 @@ class PlayerServiceImplTest {
         } finally {
             logger.removeHandler(handler);
         }
+    }
+
+    @Test
+    void getWrapsRepositoryFailuresInPlayerServiceException() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        PlayerRepository repo = mock(PlayerRepository.class);
+        when(repo.findByUuid(uuid)).thenThrow(new SQLException("database unavailable"));
+        PlayerServiceImpl service = new PlayerServiceImpl(
+            repo,
+            new RecordingEventBus(),
+            Runnable::run,
+            mock(Plugin.class),
+            Logger.getLogger(getClass().getName())
+        );
+
+        CompletionException error = assertThrows(
+            CompletionException.class,
+            () -> service.get(uuid).join()
+        );
+
+        assertTrue(error.getCause() instanceof HavenPlayerServiceException);
+        assertTrue(error.getCause().getMessage().contains("Failed to load player profile"));
     }
 
     private static final class QueueingExecutor implements Executor {

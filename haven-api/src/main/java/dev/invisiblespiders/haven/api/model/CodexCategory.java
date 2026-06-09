@@ -11,13 +11,13 @@ import java.util.Map;
  */
 public final class CodexCategory {
 
+    private static final Map<String, CodexCategory> REGISTRY = new LinkedHashMap<>();
+
     public static final CodexCategory MOBS   = register("mobs");
     public static final CodexCategory ITEMS  = register("items");
     public static final CodexCategory ORES   = register("ores");
     public static final CodexCategory FISH   = register("fish");
     public static final CodexCategory BLOCKS = register("blocks");
-
-    private static final Map<String, CodexCategory> REGISTRY = new LinkedHashMap<>();
 
     private final String id;
 
