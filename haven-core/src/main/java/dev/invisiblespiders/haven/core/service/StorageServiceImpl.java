@@ -1,5 +1,6 @@
 package dev.invisiblespiders.haven.core.service;
 
+import dev.invisiblespiders.haven.api.exception.VirtualInventoryLimitException;
 import dev.invisiblespiders.haven.api.event.HavenVirtualStorageOpenEvent;
 import dev.invisiblespiders.haven.api.model.VirtualInventory;
 import dev.invisiblespiders.haven.api.service.HavenEventBus;
@@ -64,6 +65,9 @@ public class StorageServiceImpl implements HavenStorageService {
             );
             try {
                 repo.save(inv, settings.maxPerPlayer());
+            }
+            catch (IllegalStateException e) {
+                throw new VirtualInventoryLimitException(e.getMessage(), e);
             }
             catch (SQLException e) { throw new RuntimeException("Failed to create virtual inventory", e); }
             return inv;

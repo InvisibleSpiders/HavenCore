@@ -1,5 +1,6 @@
 package dev.invisiblespiders.haven.core.service;
 
+import dev.invisiblespiders.haven.api.exception.VirtualInventoryLimitException;
 import dev.invisiblespiders.haven.api.event.HavenEvent;
 import dev.invisiblespiders.haven.api.model.VirtualInventory;
 import dev.invisiblespiders.haven.api.service.HavenEventBus;
@@ -68,7 +69,7 @@ class StorageServiceImplTest {
             () -> service.create(ownerUuid, "Overflow", 3).join()
         );
 
-        assertInstanceOf(IllegalStateException.class, error.getCause());
+        assertInstanceOf(VirtualInventoryLimitException.class, error.getCause());
         assertTrue(error.getCause().getMessage().contains("maximum"));
     }
 

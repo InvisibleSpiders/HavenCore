@@ -35,7 +35,12 @@ public class NotificationServiceImpl implements HavenNotificationService {
 
     @Override
     public void broadcast(Collection<? extends Player> players, String key, Map<String, String> placeholders) {
-        players.forEach(p -> send(p, key, placeholders));
+        String template = config.getMessage(key);
+        if (template == null || template.isBlank()) return;
+
+        MessageChannel channel = channelFromKey(key);
+        Component component = applyPlaceholders(template, placeholders);
+        players.forEach(player -> sendComponent(player, channel, component));
     }
 
     @Override

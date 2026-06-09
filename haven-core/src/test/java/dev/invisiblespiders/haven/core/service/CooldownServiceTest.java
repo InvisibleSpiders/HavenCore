@@ -3,6 +3,8 @@ package dev.invisiblespiders.haven.core.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -61,12 +63,18 @@ class CooldownServiceTest {
     }
 
     @Test
-    void clearPrunesEmptyInnerMap() {
+    void clearLeavesOwnerBucketInPlaceToAvoidConcurrentSetLoss() throws ReflectiveOperationException {
         service.set(player, "test", 60_000);
         service.clear(player, "test");
-        // After clearing the only key, subsequent set should not throw and should work
+
         assertFalse(service.isActive(player, "test"));
-        service.set(player, "test", 60_000);
-        assertTrue(service.isActive(player, "test"));
+        assertTrue(store().containsKey(player));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<UUID, Map<String, Long>> store() throws ReflectiveOperationException {
+        Field field = CooldownServiceImpl.class.getDeclaredField("store");
+        field.setAccessible(true);
+        return (Map<UUID, Map<String, Long>>) field.get(service);
     }
 }

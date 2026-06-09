@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.logging.Logger;
@@ -32,6 +33,7 @@ public class PlayerServiceImpl implements HavenPlayerService, Listener {
     private final Logger logger;
 
     private final Map<UUID, HavenPlayer> cache = new ConcurrentHashMap<>();
+    private final Map<UUID, CompletableFuture<LoadedProfile>> loadingProfiles = new ConcurrentHashMap<>();
 
     public PlayerServiceImpl(PlayerRepository repo, HavenEventBus eventBus,
                              Executor asyncExecutor, Plugin plugin, Logger logger) {
@@ -46,7 +48,7 @@ public class PlayerServiceImpl implements HavenPlayerService, Listener {
     public void onJoin(PlayerJoinEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();
         String name = event.getPlayer().getName();
-        CompletableFuture.supplyAsync(() -> {
+        CompletableFuture<LoadedProfile> loadFuture = CompletableFuture.supplyAsync(() -> {
             try {
                 Optional<HavenPlayer> existing = repo.findByUuid(uuid);
                 boolean firstJoin = existing.isEmpty();
@@ -65,11 +67,24 @@ public class PlayerServiceImpl implements HavenPlayerService, Listener {
                 logger.warning("Failed to load profile for " + name + ": " + e.getMessage());
                 return null;
             }
-        }, asyncExecutor).thenAccept(loaded -> {
+        }, asyncExecutor);
+        loadingProfiles.put(uuid, loadFuture);
+        loadFuture.thenAccept(loaded -> {
             if (loaded == null) {
+                loadingProfiles.remove(uuid, loadFuture);
                 return;
             }
-            plugin.getServer().getScheduler().runTask(plugin, () -> publishLoadedProfile(uuid, loaded));
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                try {
+                    publishLoadedProfile(uuid, loaded);
+                } finally {
+                    loadingProfiles.remove(uuid, loadFuture);
+                }
+            });
+        }).exceptionally(ex -> {
+            loadingProfiles.remove(uuid, loadFuture);
+            logger.warning("Failed to schedule profile load for " + uuid + ": " + rootCause(ex).getMessage());
+            return null;
         });
     }
 
@@ -87,12 +102,32 @@ public class PlayerServiceImpl implements HavenPlayerService, Listener {
         UUID uuid = event.getPlayer().getUniqueId();
         HavenPlayer player = cache.remove(uuid);
         if (player != null) {
-            player.setLastSeen(System.currentTimeMillis());
-            CompletableFuture.runAsync(() -> {
-                try { repo.upsert(player); }
-                catch (Exception e) { logger.warning("Failed to save profile on quit for " + uuid + ": " + e.getMessage()); }
-            }, asyncExecutor);
+            saveProfileOnQuit(uuid, player);
+            return;
         }
+        CompletableFuture<LoadedProfile> loading = loadingProfiles.get(uuid);
+        if (loading != null) {
+            loading.thenAcceptAsync(loaded -> {
+                if (loaded != null) {
+                    saveLoadedProfileOnQuit(uuid, loaded);
+                }
+            }, asyncExecutor).exceptionally(ex -> {
+                logger.warning("Failed to save loading profile on quit for " + uuid + ": " + rootCause(ex).getMessage());
+                return null;
+            });
+        }
+    }
+
+    private void saveLoadedProfileOnQuit(UUID uuid, LoadedProfile loaded) {
+        saveProfileOnQuit(uuid, loaded.player());
+    }
+
+    private void saveProfileOnQuit(UUID uuid, HavenPlayer player) {
+        player.setLastSeen(System.currentTimeMillis());
+        CompletableFuture.runAsync(() -> {
+            try { repo.upsert(player); }
+            catch (Exception e) { logger.warning("Failed to save profile on quit for " + uuid + ": " + e.getMessage()); }
+        }, asyncExecutor);
     }
 
     @Override
@@ -132,4 +167,11 @@ public class PlayerServiceImpl implements HavenPlayerService, Listener {
     }
 
     private record LoadedProfile(HavenPlayer player, boolean firstJoin) {}
+
+    private static Throwable rootCause(Throwable throwable) {
+        if (throwable instanceof CompletionException && throwable.getCause() != null) {
+            return throwable.getCause();
+        }
+        return throwable;
+    }
 }
