@@ -61,9 +61,13 @@ public class VirtualInventoryRepository {
             c.setAutoCommit(false);
             try {
                 if (maxPerOwner > 0) {
-                    String countSql = "SELECT COUNT(*) FROM haven_virtual_inventories WHERE owner_uuid = ?";
+                    String countSql = """
+                        SELECT COUNT(*) FROM haven_virtual_inventories
+                        WHERE owner_uuid = ? AND id <> ?
+                        """;
                     try (PreparedStatement ps = c.prepareStatement(countSql)) {
                         ps.setString(1, inv.getOwnerUuid().toString());
+                        ps.setString(2, inv.getId().toString());
                         try (ResultSet rs = ps.executeQuery()) {
                             if (rs.next() && rs.getInt(1) >= maxPerOwner) {
                                 throw new IllegalStateException("Player has reached the maximum virtual inventory limit.");

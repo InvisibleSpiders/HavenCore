@@ -46,7 +46,7 @@ class EconomyServiceImplTest {
     }
 
     @Test
-    void moneyOpsReturnFalseWhenItemAdapterIsPreferred() {
+    void uuidMoneyOpsStillDelegateWhenItemAdapterIsPreferred() {
         MoneyEconomyAdapter money = mock(MoneyEconomyAdapter.class);
         EconomyServiceImpl service = new EconomyServiceImpl(
             money,
@@ -55,10 +55,16 @@ class EconomyServiceImplTest {
             EconomySettings.Adapter.ITEM
         );
         UUID uuid = UUID.randomUUID();
-        assertFalse(service.has(uuid, 10.0));
-        assertFalse(service.withdraw(uuid, 10.0));
-        assertFalse(service.deposit(uuid, 10.0));
-        verifyNoInteractions(money);
+        when(money.has(uuid, 10.0)).thenReturn(true);
+        when(money.withdraw(uuid, 10.0)).thenReturn(true);
+        when(money.deposit(uuid, 10.0)).thenReturn(true);
+
+        assertTrue(service.has(uuid, 10.0));
+        assertTrue(service.withdraw(uuid, 10.0));
+        assertTrue(service.deposit(uuid, 10.0));
+        verify(money).has(uuid, 10.0);
+        verify(money).withdraw(uuid, 10.0);
+        verify(money).deposit(uuid, 10.0);
     }
 
     @Test

@@ -46,7 +46,7 @@ public class PlayerServiceImpl implements HavenPlayerService, Listener {
     public void onJoin(PlayerJoinEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();
         String name = event.getPlayer().getName();
-        CompletableFuture.runAsync(() -> {
+        CompletableFuture.supplyAsync(() -> {
             try {
                 Optional<HavenPlayer> existing = repo.findByUuid(uuid);
                 boolean firstJoin = existing.isEmpty();
@@ -60,15 +60,26 @@ public class PlayerServiceImpl implements HavenPlayerService, Listener {
                     player.setLastSeen(System.currentTimeMillis());
                 }
                 repo.upsert(player);
-                if (plugin.getServer().getPlayer(uuid) != null) {
-                    cache.put(uuid, player);
-                    eventBus.publish(new HavenPlayerProfileLoadEvent(player, firstJoin));
-                    if (firstJoin) eventBus.publish(new HavenPlayerFirstJoinEvent(player));
-                }
+                return new LoadedProfile(player, firstJoin);
             } catch (Exception e) {
                 logger.warning("Failed to load profile for " + name + ": " + e.getMessage());
+                return null;
             }
-        }, asyncExecutor);
+        }, asyncExecutor).thenAccept(loaded -> {
+            if (loaded == null) {
+                return;
+            }
+            plugin.getServer().getScheduler().runTask(plugin, () -> publishLoadedProfile(uuid, loaded));
+        });
+    }
+
+    private void publishLoadedProfile(UUID uuid, LoadedProfile loaded) {
+        if (plugin.getServer().getPlayer(uuid) == null) {
+            return;
+        }
+        cache.put(uuid, loaded.player());
+        eventBus.publish(new HavenPlayerProfileLoadEvent(loaded.player(), loaded.firstJoin()));
+        if (loaded.firstJoin()) eventBus.publish(new HavenPlayerFirstJoinEvent(loaded.player()));
     }
 
     @EventHandler
@@ -119,4 +130,6 @@ public class PlayerServiceImpl implements HavenPlayerService, Listener {
             catch (Exception e) { throw new RuntimeException(e); }
         }, asyncExecutor);
     }
+
+    private record LoadedProfile(HavenPlayer player, boolean firstJoin) {}
 }
