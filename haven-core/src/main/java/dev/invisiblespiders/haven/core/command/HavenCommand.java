@@ -263,7 +263,7 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(MM.deserialize("<gray>/haven doctor <dark_gray>- <white>Run core diagnostics for config, database, hooks, and services <gray>(haven.admin.doctor)"));
         sender.sendMessage(MM.deserialize("<gray>/haven version <dark_gray>- <white>Show HavenCore, Paper, and Java versions <gray>(haven.use)"));
         sender.sendMessage(MM.deserialize("<gray>/haven reload <dark_gray>- <white>Reload configuration files <gray>(haven.admin.reload)"));
-        sender.sendMessage(MM.deserialize("<gray>/haven toggleop <dark_gray>- <white>Toggle OP for configured UUID entries only"));
+        sender.sendMessage(MM.deserialize("<gray>/haven toggleop <dark_gray>- <white>Toggle OP for configured UUID entries only <gray>(havencore.toggleop.<code>)"));
     }
 
     private void sendVersion(CommandSender sender) {

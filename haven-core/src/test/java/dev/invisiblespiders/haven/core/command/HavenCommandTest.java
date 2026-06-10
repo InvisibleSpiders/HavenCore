@@ -143,7 +143,8 @@ class HavenCommandTest {
         assertTrue(messages.stream().anyMatch(message -> message.contains("/haven reload")
             && message.contains("haven.admin.reload")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("/haven toggleop")
-            && message.contains("configured UUID")));
+            && message.contains("configured UUID")
+            && message.contains("havencore.toggleop.<code>")));
     }
 
     @Test
