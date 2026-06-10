@@ -34,6 +34,16 @@ class NotificationServiceImplTest {
     }
 
     @Test
+    void broadcastWithNoPlayersDoesNotResolveTemplate() {
+        ConfigManager config = mock(ConfigManager.class);
+        NotificationServiceImpl notifications = new NotificationServiceImpl(config);
+
+        notifications.broadcast(List.of(), "notice.broadcast", Map.of("player", "Haven"));
+
+        verify(config, times(0)).getMessage("notice.broadcast");
+    }
+
+    @Test
     void placeholderValuesAreRenderedLiterally() {
         ConfigManager config = mock(ConfigManager.class);
         when(config.getMessage("notice.player")).thenReturn("<green>Hello <player>.");

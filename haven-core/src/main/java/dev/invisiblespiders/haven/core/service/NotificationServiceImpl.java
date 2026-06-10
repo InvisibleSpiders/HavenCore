@@ -36,6 +36,8 @@ public class NotificationServiceImpl implements HavenNotificationService {
 
     @Override
     public void broadcast(Collection<? extends Player> players, String key, Map<String, String> placeholders) {
+        if (players.isEmpty()) return;
+
         String template = config.getMessage(key);
         if (template == null || template.isBlank()) return;
 
