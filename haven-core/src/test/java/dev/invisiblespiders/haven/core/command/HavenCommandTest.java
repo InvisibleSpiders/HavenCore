@@ -1,5 +1,7 @@
 package dev.invisiblespiders.haven.core.command;
 
+import dev.invisiblespiders.haven.api.diagnostic.DiagnosticResult;
+import dev.invisiblespiders.haven.api.service.HavenDiagnosticService;
 import dev.invisiblespiders.haven.api.service.HavenHookRegistry;
 import dev.invisiblespiders.haven.api.service.HavenCodexService;
 import dev.invisiblespiders.haven.api.service.HavenDataSource;
@@ -199,6 +201,49 @@ class HavenCommandTest {
         assertTrue(messages.stream().anyMatch(message -> message.contains("Summary:")
             && message.contains("pass=") && message.contains("warn=") && message.contains("fail=0")));
         verify(connection).close();
+    }
+
+    @Test
+    void doctorIncludesRegisteredSuiteDiagnostics() throws SQLException {
+        Plugin plugin = mockPluginWithServices();
+        ConfigManager config = mock(ConfigManager.class);
+        stubLoadedConfig(config);
+        HavenHookRegistry hooks = mock(HavenHookRegistry.class);
+        when(hooks.getAll()).thenReturn(List.of());
+        CommandSender sender = mock(CommandSender.class);
+        when(sender.hasPermission("haven.admin.doctor")).thenReturn(true);
+        HavenEconomyService economy = mock(HavenEconomyService.class);
+        when(economy.isMoneyAvailable()).thenReturn(true);
+        HavenDataSource dataSource = mock(HavenDataSource.class);
+        DataSource jdbc = mock(DataSource.class);
+        when(dataSource.getDataSource()).thenReturn(jdbc);
+        when(jdbc.getConnection()).thenReturn(mock(Connection.class));
+        HavenDiagnosticService diagnostics = mock(HavenDiagnosticService.class);
+        when(diagnostics.runAll()).thenReturn(List.of(
+            DiagnosticResult.warn("haventeleport.landclaims", "Land claims plugin is missing.")
+        ));
+
+        ServicesManager services = plugin.getServer().getServicesManager();
+        when(services.load(HavenEconomyService.class)).thenReturn(economy);
+        when(services.load(HavenDataSource.class)).thenReturn(dataSource);
+        when(services.load(HavenStorageService.class)).thenReturn(mock(HavenStorageService.class));
+        when(services.load(HavenCodexService.class)).thenReturn(mock(HavenCodexService.class));
+
+        HavenCommand command = new HavenCommand(
+            plugin,
+            config,
+            hooks,
+            mock(ExecutorService.class),
+            mock(OpToggleService.class),
+            diagnostics
+        );
+
+        command.onCommand(sender, mock(Command.class), "haven", new String[] {"doctor"});
+
+        List<String> messages = sentPlainMessages(sender);
+        assertTrue(messages.stream().anyMatch(message -> message.contains("haventeleport.landclaims")
+            && message.contains("WARN")
+            && message.contains("Land claims plugin is missing")));
     }
 
     @Test

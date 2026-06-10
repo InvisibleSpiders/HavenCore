@@ -58,6 +58,7 @@ public class HavenCore extends JavaPlugin {
             configManager.getMain().getString("tier.luckperms-meta-key", "haven_tier"), getLogger()
         );
         NotificationServiceImpl notifications = new NotificationServiceImpl(configManager);
+        DiagnosticServiceImpl diagnosticService = new DiagnosticServiceImpl();
         OpToggleService opToggleService = new OpToggleService(
             this, OpToggleSettings.from(configManager.getOpToggle())
         );
@@ -121,10 +122,11 @@ public class HavenCore extends JavaPlugin {
         sm.register(HavenStorageService.class,    storageService, this, ServicePriority.Normal);
         sm.register(HavenCodexService.class,      codexService,   this, ServicePriority.Normal);
         sm.register(HavenDataSource.class,        dataSource,     this, ServicePriority.Normal);
+        sm.register(HavenDiagnosticService.class, diagnosticService, this, ServicePriority.Normal);
 
         // Commands
         HavenCommand cmd = new HavenCommand(
-            this, configManager, hookRegistry, asyncExecutor, opToggleService
+            this, configManager, hookRegistry, asyncExecutor, opToggleService, diagnosticService
         );
         var havenCmd = getCommand("haven");
         if (havenCmd != null) {

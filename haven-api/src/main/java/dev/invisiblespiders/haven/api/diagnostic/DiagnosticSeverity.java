@@ -1,4 +1,4 @@
-package dev.invisiblespiders.haven.core.diagnostic;
+package dev.invisiblespiders.haven.api.diagnostic;
 
 public enum DiagnosticSeverity {
     PASS,
