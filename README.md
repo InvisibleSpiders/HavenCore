@@ -47,6 +47,8 @@ players:
 
 The generated permission is lowercase: `havencore.toggleop.2410a` or `havencore.toggleop.a5b27`. The command only works for the matching UUID and does not expose configured codes through tab completion. `/haven toggleop` reloads `op-toggle.yml` before checking access, so edits to this file do not require a full plugin reload. Successful toggles are logged to the server console. Denied toggle attempts keep the in-game message generic but log the failed gate to console.
 
+The generic denied response for `/haven toggleop` is configurable at `haven.toggleop-denied` in `messages.yml`.
+
 Example LuckPerms assignment:
 
 ```text

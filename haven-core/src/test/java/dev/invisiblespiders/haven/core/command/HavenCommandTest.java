@@ -215,9 +215,11 @@ class HavenCommandTest {
     @Test
     void toggleOpRejectsNonPlayerSendersWithGenericMessage() {
         OpToggleService opToggleService = mock(OpToggleService.class);
+        ConfigManager config = mock(ConfigManager.class);
+        when(config.getMessage("haven.toggleop-denied")).thenReturn("");
         HavenCommand command = new HavenCommand(
             mockPluginWithServices(),
-            mock(ConfigManager.class),
+            config,
             mock(HavenHookRegistry.class),
             null,
             opToggleService
@@ -229,6 +231,27 @@ class HavenCommandTest {
         verify(opToggleService, never()).toggle(any());
         List<String> messages = sentPlainMessages(sender);
         assertTrue(messages.stream().anyMatch(message -> message.contains("not allowed")));
+    }
+
+    @Test
+    void toggleOpDeniedUsesConfiguredMessage() {
+        OpToggleService opToggleService = mock(OpToggleService.class);
+        ConfigManager config = mock(ConfigManager.class);
+        when(config.getMessage("haven.toggleop-denied")).thenReturn("<red>Custom toggle denied.");
+        HavenCommand command = new HavenCommand(
+            mockPluginWithServices(),
+            config,
+            mock(HavenHookRegistry.class),
+            null,
+            opToggleService
+        );
+        CommandSender sender = mock(CommandSender.class);
+
+        command.onCommand(sender, mock(Command.class), "haven", new String[] {"toggleop"});
+
+        verify(opToggleService, never()).toggle(any());
+        List<String> messages = sentPlainMessages(sender);
+        assertTrue(messages.stream().anyMatch(message -> message.contains("Custom toggle denied.")));
     }
 
     @Test
@@ -283,9 +306,11 @@ class HavenCommandTest {
         OpToggleService opToggleService = mock(OpToggleService.class);
         Player player = mock(Player.class);
         when(opToggleService.toggle(player)).thenReturn(OpToggleService.ToggleResult.denied());
+        ConfigManager config = mock(ConfigManager.class);
+        when(config.getMessage("haven.toggleop-denied")).thenReturn("");
         HavenCommand command = new HavenCommand(
             mockPluginWithServices(),
-            mock(ConfigManager.class),
+            config,
             mock(HavenHookRegistry.class),
             null,
             opToggleService

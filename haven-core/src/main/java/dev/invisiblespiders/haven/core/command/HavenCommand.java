@@ -140,7 +140,10 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
     }
 
     private void sendToggleDenied(CommandSender sender) {
-        sender.sendMessage(MM.deserialize("<red>You are not allowed to use this command."));
+        sender.sendMessage(MM.deserialize(configuredMessage(
+            "haven.toggleop-denied",
+            "<red>You are not allowed to use this command."
+        )));
     }
 
     private void sendStatus(CommandSender sender) {
