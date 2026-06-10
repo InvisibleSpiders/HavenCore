@@ -68,7 +68,9 @@ public class ItemEconomyAdapter implements EconomyAdapter {
             ItemStack stack = contents[i];
             if (!isCurrencyItem(stack)) continue;
             int remove = Math.min(remaining, stack.getAmount());
-            stack.setAmount(stack.getAmount() - remove);
+            int newAmount = stack.getAmount() - remove;
+            contents[i] = newAmount > 0 ? stack : null;
+            if (newAmount > 0) stack.setAmount(newAmount);
             remaining -= remove;
         }
         player.getInventory().setContents(contents);
