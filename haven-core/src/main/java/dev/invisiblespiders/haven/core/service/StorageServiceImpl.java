@@ -1,5 +1,6 @@
 package dev.invisiblespiders.haven.core.service;
 
+import dev.invisiblespiders.haven.api.exception.VirtualInventoryLimitException;
 import dev.invisiblespiders.haven.api.event.HavenVirtualStorageOpenEvent;
 import dev.invisiblespiders.haven.api.model.VirtualInventory;
 import dev.invisiblespiders.haven.api.service.HavenEventBus;
@@ -63,23 +64,14 @@ public class StorageServiceImpl implements HavenStorageService {
                 UUID.randomUUID(), ownerUuid, name, rows, System.currentTimeMillis()
             );
             try {
-                enforceInventoryLimit(ownerUuid);
-                repo.save(inv);
+                repo.save(inv, settings.maxPerPlayer());
+            }
+            catch (IllegalStateException e) {
+                throw new VirtualInventoryLimitException(e.getMessage(), e);
             }
             catch (SQLException e) { throw new RuntimeException("Failed to create virtual inventory", e); }
             return inv;
         }, asyncExecutor);
-    }
-
-    private void enforceInventoryLimit(UUID ownerUuid) throws SQLException {
-        int maxPerPlayer = settings.maxPerPlayer();
-        if (maxPerPlayer <= 0) {
-            return;
-        }
-
-        if (repo.findByOwner(ownerUuid).size() >= maxPerPlayer) {
-            throw new IllegalStateException("Player has reached the maximum virtual inventory limit.");
-        }
     }
 
     @Override

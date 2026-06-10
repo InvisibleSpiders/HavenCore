@@ -73,4 +73,15 @@ class CodexRepositoryTest {
         assertEquals(1, repo.countByCategory(PLAYER, "ores"));
         assertEquals(0, repo.countByCategory(PLAYER, "fish"));
     }
+
+    @Test
+    @Order(6)
+    void countByCategoryDoesNotMatchLikeWildcards() throws Exception {
+        repo.insert(PLAYER, "mobs%:special", System.currentTimeMillis());
+        // "mobs%" as categoryId must only match entries prefixed "mobs%:", not "mobs:"
+        assertEquals(1, repo.countByCategory(PLAYER, "mobs%"));
+        // without escaping, "mobs%" would match "mobs:creeper" and "mobs:zombie" → 2
+        // "m_bs" should not match "mobs" entries
+        assertEquals(0, repo.countByCategory(PLAYER, "m_bs"));
+    }
 }

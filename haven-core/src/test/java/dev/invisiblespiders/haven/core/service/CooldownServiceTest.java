@@ -3,6 +3,8 @@ package dev.invisiblespiders.haven.core.service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -58,5 +60,21 @@ class CooldownServiceTest {
         UUID other = UUID.randomUUID();
         service.set(player, "test", 60_000);
         assertFalse(service.isActive(other, "test"));
+    }
+
+    @Test
+    void clearLeavesOwnerBucketInPlaceToAvoidConcurrentSetLoss() throws ReflectiveOperationException {
+        service.set(player, "test", 60_000);
+        service.clear(player, "test");
+
+        assertFalse(service.isActive(player, "test"));
+        assertTrue(store().containsKey(player));
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<UUID, Map<String, Long>> store() throws ReflectiveOperationException {
+        Field field = CooldownServiceImpl.class.getDeclaredField("store");
+        field.setAccessible(true);
+        return (Map<UUID, Map<String, Long>>) field.get(service);
     }
 }
