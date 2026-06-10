@@ -7,6 +7,7 @@
 
 haven:
   reload-success: "<green>HavenCore reloaded successfully."
+  reload-restart-required: "<yellow>Restart required for hooks, economy, database, and service wiring changes."
   reload-failure: "<red>HavenCore reload encountered errors. Check console."
   no-permission: "<red>You don't have permission to do that."
   economy-unavailable: "<yellow>Economy is currently unavailable."

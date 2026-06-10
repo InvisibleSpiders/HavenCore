@@ -23,7 +23,7 @@ HavenCore is the shared foundation plugin for the Haven plugin suite. It provide
 | `haven.admin.codex` | `op` | Reserved for viewing player codex data in HavenCore/Haven suite admin tooling. |
 | `havencore.toggleop.<code>` | `false` | Runtime permission generated from `op-toggle.yml` entries, such as `havencore.toggleop.a5b27`. Not inherited by `haven.admin`. |
 
-The generic no-permission response for `/haven` commands is configurable at `haven.no-permission` in `messages.yml`. The `/haven reload` success response is configurable at `haven.reload-success`.
+The generic no-permission response for `/haven` commands is configurable at `haven.no-permission` in `messages.yml`. The `/haven reload` responses are configurable at `haven.reload-success` and `haven.reload-restart-required`.
 
 ## OP Toggle
 

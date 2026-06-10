@@ -38,6 +38,7 @@ class HavenCommandTest {
         Plugin plugin = mock(Plugin.class);
         ConfigManager config = mock(ConfigManager.class);
         when(config.getMessage("haven.reload-success")).thenReturn("");
+        when(config.getMessage("haven.reload-restart-required")).thenReturn("");
         HavenHookRegistry hooks = mock(HavenHookRegistry.class);
         CommandSender sender = mock(CommandSender.class);
         when(sender.hasPermission("haven.admin.reload")).thenReturn(true);
@@ -65,6 +66,7 @@ class HavenCommandTest {
         Plugin plugin = mock(Plugin.class);
         ConfigManager config = mock(ConfigManager.class);
         when(config.getMessage("haven.reload-success")).thenReturn("<green>Custom reload done.");
+        when(config.getMessage("haven.reload-restart-required")).thenReturn("");
         HavenHookRegistry hooks = mock(HavenHookRegistry.class);
         CommandSender sender = mock(CommandSender.class);
         when(sender.hasPermission("haven.admin.reload")).thenReturn(true);
@@ -75,6 +77,24 @@ class HavenCommandTest {
 
         List<String> messages = sentPlainMessages(sender);
         assertTrue(messages.get(0).contains("Custom reload done."));
+    }
+
+    @Test
+    void reloadUsesConfiguredRestartRequiredMessage() {
+        Plugin plugin = mock(Plugin.class);
+        ConfigManager config = mock(ConfigManager.class);
+        when(config.getMessage("haven.reload-success")).thenReturn("");
+        when(config.getMessage("haven.reload-restart-required")).thenReturn("<yellow>Custom restart warning.");
+        HavenHookRegistry hooks = mock(HavenHookRegistry.class);
+        CommandSender sender = mock(CommandSender.class);
+        when(sender.hasPermission("haven.admin.reload")).thenReturn(true);
+
+        HavenCommand command = new HavenCommand(plugin, config, hooks);
+
+        command.onCommand(sender, mock(Command.class), "haven", new String[] {"reload"});
+
+        List<String> messages = sentPlainMessages(sender);
+        assertTrue(messages.get(1).contains("Custom restart warning."));
     }
 
     @Test

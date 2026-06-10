@@ -82,9 +82,10 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
                     "haven.reload-success",
                     "<green>HavenCore configuration files reloaded."
                 )));
-                sender.sendMessage(MM.deserialize(
+                sender.sendMessage(MM.deserialize(configuredMessage(
+                    "haven.reload-restart-required",
                     "<yellow>Restart required for hooks, economy, database, and service wiring changes."
-                ));
+                )));
             }
             case "toggleop" -> toggleOp(sender);
             default -> sender.sendMessage(MM.deserialize(
