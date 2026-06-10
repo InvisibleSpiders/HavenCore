@@ -1,6 +1,7 @@
 package dev.invisiblespiders.haven.core.service;
 
 import dev.invisiblespiders.haven.api.exception.VirtualInventoryLimitException;
+import dev.invisiblespiders.haven.api.exception.HavenStorageServiceException;
 import dev.invisiblespiders.haven.api.event.HavenEvent;
 import dev.invisiblespiders.haven.api.model.VirtualInventory;
 import dev.invisiblespiders.haven.api.service.HavenEventBus;
@@ -71,6 +72,22 @@ class StorageServiceImplTest {
 
         assertInstanceOf(VirtualInventoryLimitException.class, error.getCause());
         assertTrue(error.getCause().getMessage().contains("maximum"));
+    }
+
+    @Test
+    void createWrapsSqlFailuresInStorageServiceException() throws SQLException {
+        VirtualInventoryRepository repo = mock(VirtualInventoryRepository.class);
+        doThrow(new SQLException("database unavailable"))
+            .when(repo).save(any(VirtualInventory.class), eq(0));
+        StorageServiceImpl service = newService(mock(Plugin.class), repo, new StorageSettings(3, 0));
+
+        CompletionException error = assertThrows(
+            CompletionException.class,
+            () -> service.create(UUID.randomUUID(), "Broken", 3).join()
+        );
+
+        assertInstanceOf(HavenStorageServiceException.class, error.getCause());
+        assertTrue(error.getCause().getMessage().contains("Failed to create virtual inventory"));
     }
 
     @Test

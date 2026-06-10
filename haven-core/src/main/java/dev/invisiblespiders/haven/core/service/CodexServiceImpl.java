@@ -2,6 +2,7 @@ package dev.invisiblespiders.haven.core.service;
 
 import dev.invisiblespiders.haven.api.event.HavenCodexDiscoveryEvent;
 import dev.invisiblespiders.haven.api.event.HavenCodexMilestoneEvent;
+import dev.invisiblespiders.haven.api.exception.HavenCodexServiceException;
 import dev.invisiblespiders.haven.api.model.CodexCategory;
 import dev.invisiblespiders.haven.api.model.CodexEntry;
 import dev.invisiblespiders.haven.api.model.PlayerCodex;
@@ -76,7 +77,7 @@ public class CodexServiceImpl implements HavenCodexService {
     public CompletableFuture<PlayerCodex> getCodex(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {
             try { return repo.load(playerUuid); }
-            catch (SQLException e) { throw new RuntimeException(e); }
+            catch (SQLException e) { throw new HavenCodexServiceException("Failed to load player codex " + playerUuid, e); }
         }, asyncExecutor);
     }
 
@@ -104,7 +105,7 @@ public class CodexServiceImpl implements HavenCodexService {
                 return true;
             } catch (SQLException e) {
                 logger.warning("CodexService recordDiscovery failed: " + e.getMessage());
-                throw new RuntimeException(e);
+                throw new HavenCodexServiceException("Failed to record codex discovery " + entryKey, e);
             }
         }, asyncExecutor);
     }
@@ -113,7 +114,9 @@ public class CodexServiceImpl implements HavenCodexService {
     public CompletableFuture<Integer> getDiscoveryCount(UUID playerUuid, CodexCategory category) {
         return CompletableFuture.supplyAsync(() -> {
             try { return repo.countByCategory(playerUuid, category.getId()); }
-            catch (SQLException e) { throw new RuntimeException(e); }
+            catch (SQLException e) {
+                throw new HavenCodexServiceException("Failed to count codex discoveries for " + playerUuid, e);
+            }
         }, asyncExecutor);
     }
 }

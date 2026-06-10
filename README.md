@@ -62,3 +62,15 @@ HavenCore soft-depends on these plugins when present so integrations load in the
 | `Vault` / `VaultUnlocked` | Economy bridge through the VaultUnlocked API. |
 | `PlaceholderAPI` | Placeholder integration hook. |
 | `LuckPerms` | Tier metadata lookup support. |
+
+## Service Exceptions
+
+Asynchronous HavenCore service methods complete exceptionally with public runtime exception types so other plugins can distinguish expected service failures:
+
+| Exception | Service Area | Description |
+| --- | --- | --- |
+| `HavenServiceException` | Shared | Base type for HavenCore service failures. |
+| `HavenPlayerServiceException` | Player profiles | Wraps player profile repository load/save failures. |
+| `HavenStorageServiceException` | Virtual storage | Wraps virtual inventory repository load/save/delete failures. |
+| `VirtualInventoryLimitException` | Virtual storage | Indicates the owner has reached the configured virtual inventory limit. |
+| `HavenCodexServiceException` | Codex | Wraps codex repository load, discovery, and count failures. |
