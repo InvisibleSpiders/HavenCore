@@ -62,4 +62,40 @@ class OpToggleSettingsTest {
         assertFalse(settings.find(UUID.fromString("00000000-0000-0000-0000-000000000002")).isPresent());
         assertTrue(settings.entries().isEmpty());
     }
+
+    @Test
+    void ignoresDuplicateUuidEntriesAfterFirstValidEntry() {
+        UUID uuid = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        YamlConfiguration config = new YamlConfiguration();
+        config.set("enabled", true);
+        config.set("players.First.uuid", uuid.toString());
+        config.set("players.First.code", "A5B27");
+        config.set("players.Second.uuid", uuid.toString());
+        config.set("players.Second.code", "B7C91");
+
+        OpToggleSettings settings = OpToggleSettings.from(config);
+
+        assertEquals(1, settings.entries().size());
+        OpToggleSettings.Entry entry = settings.find(uuid).orElseThrow();
+        assertEquals("First", entry.name());
+        assertEquals("A5B27", entry.code());
+    }
+
+    @Test
+    void ignoresDuplicateCodeEntriesAfterFirstValidEntry() {
+        UUID firstUuid = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID secondUuid = UUID.fromString("00000000-0000-0000-0000-000000000002");
+        YamlConfiguration config = new YamlConfiguration();
+        config.set("enabled", true);
+        config.set("players.First.uuid", firstUuid.toString());
+        config.set("players.First.code", "A5B27");
+        config.set("players.Second.uuid", secondUuid.toString());
+        config.set("players.Second.code", "a5b27");
+
+        OpToggleSettings settings = OpToggleSettings.from(config);
+
+        assertEquals(1, settings.entries().size());
+        assertTrue(settings.find(firstUuid).isPresent());
+        assertFalse(settings.find(secondUuid).isPresent());
+    }
 }

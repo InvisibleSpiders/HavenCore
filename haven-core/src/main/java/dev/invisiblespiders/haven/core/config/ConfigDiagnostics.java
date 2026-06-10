@@ -200,9 +200,11 @@ public final class ConfigDiagnostics {
         ConfigurationSection players = opToggle.getConfigurationSection("players");
         int validEntries = countRootOpToggleEntry(opToggle, logger);
         Map<String, String> seenCodes = new HashMap<>();
+        Map<UUID, String> seenUuids = new HashMap<>();
         String rootCode = opToggle.getString("code", "");
         if (validEntries > 0) {
-            seenCodes.put(rootCode.toLowerCase(Locale.ROOT), "player");
+            seenCodes.put(OpToggleSettings.normalizeCode(rootCode), "player");
+            seenUuids.put(UUID.fromString(opToggle.getString("player", opToggle.getString("uuid"))), "player");
         }
         if (players != null) {
             for (String name : players.getKeys(false)) {
@@ -220,12 +222,22 @@ public final class ConfigDiagnostics {
                 }
 
                 if (validUuid && validCode) {
-                    validEntries++;
-                    String normalizedCode = code.toLowerCase(Locale.ROOT);
+                    UUID uuid = UUID.fromString(uuidValue);
+                    String previousUuidName = seenUuids.putIfAbsent(uuid, name);
+                    if (previousUuidName != null) {
+                        logger.warning("op-toggle.yml UUID '" + uuidValue
+                            + "' is used by both " + previousUuidName + " and " + name + ".");
+                    }
+
+                    String normalizedCode = OpToggleSettings.normalizeCode(code);
                     String previousName = seenCodes.putIfAbsent(normalizedCode, name);
                     if (previousName != null) {
                         logger.warning("op-toggle.yml code '" + code
                             + "' is used by both " + previousName + " and " + name + ".");
+                    }
+
+                    if (previousUuidName == null && previousName == null) {
+                        validEntries++;
                     }
                 }
             }

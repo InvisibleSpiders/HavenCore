@@ -41,6 +41,10 @@ class ConfigDiagnosticsTest {
         opToggle.set("players.DuplicateOne.code", "B7C91");
         opToggle.set("players.DuplicateTwo.uuid", "00000000-0000-0000-0000-000000000003");
         opToggle.set("players.DuplicateTwo.code", "B7C91");
+        opToggle.set("players.DuplicateUuidOne.uuid", "00000000-0000-0000-0000-000000000004");
+        opToggle.set("players.DuplicateUuidOne.code", "C8D02");
+        opToggle.set("players.DuplicateUuidTwo.uuid", "00000000-0000-0000-0000-000000000004");
+        opToggle.set("players.DuplicateUuidTwo.code", "D9E13");
 
         List<LogRecord> records = new ArrayList<>();
         ConfigDiagnostics.logWarnings(database, economy, storage, hooks, opToggle, logger(records));
@@ -50,7 +54,7 @@ class ConfigDiagnosticsTest {
             .map(LogRecord::getMessage)
             .toList();
 
-        assertEquals(8, messages.size());
+        assertEquals(9, messages.size());
         assertTrue(messages.stream().anyMatch(message -> message.contains("database.yml type 'postgres'")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("preferred-adapter 'barter'")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("item-currency.material 'NOT_A_MATERIAL'")));
@@ -59,6 +63,7 @@ class ConfigDiagnosticsTest {
         assertTrue(messages.stream().anyMatch(message -> message.contains("op-toggle.yml players.BadUuid.uuid")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("op-toggle.yml players.BadCode.code")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("op-toggle.yml code 'B7C91'")));
+        assertTrue(messages.stream().anyMatch(message -> message.contains("op-toggle.yml UUID '00000000-0000-0000-0000-000000000004'")));
     }
 
     @Test
