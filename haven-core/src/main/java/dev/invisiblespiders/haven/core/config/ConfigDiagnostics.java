@@ -4,11 +4,16 @@ import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
 public final class ConfigDiagnostics {
@@ -31,6 +36,33 @@ public final class ConfigDiagnostics {
             luckPermsInstalled,
             logger
         );
+    }
+
+    public static List<String> collectWarnings(ConfigManager config, boolean luckPermsInstalled) {
+        List<String> warnings = new ArrayList<>();
+        Logger logger = Logger.getLogger("HavenCoreConfigDiagnostics-" + System.nanoTime());
+        logger.setUseParentHandlers(false);
+        Handler handler = new Handler() {
+            @Override
+            public void publish(LogRecord record) {
+                if (record.getLevel().intValue() >= Level.WARNING.intValue()) {
+                    warnings.add(record.getMessage());
+                }
+            }
+
+            @Override
+            public void flush() {}
+
+            @Override
+            public void close() {}
+        };
+        logger.addHandler(handler);
+        try {
+            logWarnings(config, luckPermsInstalled, logger);
+        } finally {
+            logger.removeHandler(handler);
+        }
+        return warnings;
     }
 
     static void logWarnings(FileConfiguration database, FileConfiguration economy,
