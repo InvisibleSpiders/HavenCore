@@ -2,6 +2,8 @@ package dev.invisiblespiders.haven.core.service;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import com.zaxxer.hikari.HikariPoolMXBean;
+import dev.invisiblespiders.haven.api.service.DataSourceHealth;
 import dev.invisiblespiders.haven.api.service.HavenDataSource;
 import dev.invisiblespiders.haven.core.db.SqlMigrator;
 
@@ -27,6 +29,28 @@ public class DataSourceImpl implements HavenDataSource {
     @Override
     public DataSource getDataSource() {
         return pool;
+    }
+
+    @Override
+    public DataSourceHealth health() {
+        if (pool == null) {
+            return DataSourceHealth.uninitialized();
+        }
+        if (pool.isClosed()) {
+            return DataSourceHealth.closed();
+        }
+        HikariPoolMXBean bean = pool.getHikariPoolMXBean();
+        if (bean == null) {
+            return new DataSourceHealth(true, true, 0, 0, 0, 0);
+        }
+        return new DataSourceHealth(
+            true,
+            true,
+            bean.getActiveConnections(),
+            bean.getIdleConnections(),
+            bean.getTotalConnections(),
+            bean.getThreadsAwaitingConnection()
+        );
     }
 
     @Override

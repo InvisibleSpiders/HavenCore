@@ -11,6 +11,11 @@ public interface HavenDataSource {
     DataSource getDataSource();
 
     /**
+     * Returns a lightweight snapshot of the shared pool state for diagnostics.
+     */
+    DataSourceHealth health();
+
+    /**
      * Registers and immediately runs forward-only SQL migrations for a plugin.
      * Call from your plugin's onEnable.
      *
