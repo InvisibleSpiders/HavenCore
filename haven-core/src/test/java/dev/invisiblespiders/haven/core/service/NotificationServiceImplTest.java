@@ -56,6 +56,18 @@ class NotificationServiceImplTest {
     }
 
     @Test
+    void sendTreatsNullPlaceholdersAsEmpty() {
+        ConfigManager config = mock(ConfigManager.class);
+        when(config.getMessage("notice.simple")).thenReturn("<green>Hello.");
+        Player player = mock(Player.class);
+        NotificationServiceImpl notifications = new NotificationServiceImpl(config);
+
+        notifications.send(player, "notice.simple", null);
+
+        assertEquals("Hello.", sentPlainMessage(player));
+    }
+
+    @Test
     void reloadRefreshesOnlyMessageTemplates() {
         ConfigManager config = mock(ConfigManager.class);
         NotificationServiceImpl notifications = new NotificationServiceImpl(config);

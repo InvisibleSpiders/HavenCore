@@ -71,7 +71,7 @@ public class NotificationServiceImpl implements HavenNotificationService {
     }
 
     private Component applyPlaceholders(String template, Map<String, String> placeholders) {
-        if (placeholders.isEmpty()) return MM.deserialize(template);
+        if (placeholders == null || placeholders.isEmpty()) return MM.deserialize(template);
         List<TagResolver> resolvers = new ArrayList<>(placeholders.size());
         placeholders.forEach((k, v) -> resolvers.add(Placeholder.unparsed(k, v)));
         return MM.deserialize(template, TagResolver.resolver(resolvers));
