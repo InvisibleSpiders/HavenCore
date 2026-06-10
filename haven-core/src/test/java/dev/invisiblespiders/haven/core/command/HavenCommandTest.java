@@ -98,6 +98,26 @@ class HavenCommandTest {
     }
 
     @Test
+    void reloadSuppressesMessagesConfiguredAsBlank() {
+        Plugin plugin = mock(Plugin.class);
+        ConfigManager config = mock(ConfigManager.class);
+        when(config.hasMessage("haven.reload-success")).thenReturn(true);
+        when(config.getMessage("haven.reload-success")).thenReturn("");
+        when(config.hasMessage("haven.reload-restart-required")).thenReturn(true);
+        when(config.getMessage("haven.reload-restart-required")).thenReturn("");
+        HavenHookRegistry hooks = mock(HavenHookRegistry.class);
+        CommandSender sender = mock(CommandSender.class);
+        when(sender.hasPermission("haven.admin.reload")).thenReturn(true);
+
+        HavenCommand command = new HavenCommand(plugin, config, hooks);
+
+        command.onCommand(sender, mock(Command.class), "haven", new String[] {"reload"});
+
+        verify(config).reload();
+        verify(sender, never()).sendMessage(any(Component.class));
+    }
+
+    @Test
     void permissionFailuresUseConfiguredNoPermissionMessage() {
         Plugin plugin = mockPluginWithServices();
         ConfigManager config = mock(ConfigManager.class);

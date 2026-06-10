@@ -104,4 +104,9 @@ public class ConfigManager {
     public String getMessage(String key) {
         return messages.getString(key, "");
     }
+
+    /** Returns whether messages.yml explicitly defines a key, even when the value is blank. */
+    public boolean hasMessage(String key) {
+        return messages != null && messages.contains(key);
+    }
 }

@@ -21,6 +21,7 @@ import org.bukkit.plugin.ServicesManager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 
 public class HavenCommand implements CommandExecutor, TabCompleter {
@@ -78,14 +79,16 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
                 if (opToggleService != null) {
                     opToggleService.reload(OpToggleSettings.from(config.getOpToggle()));
                 }
-                sender.sendMessage(MM.deserialize(configuredMessage(
+                sendConfiguredMessage(
+                    sender,
                     "haven.reload-success",
                     "<green>HavenCore configuration files reloaded."
-                )));
-                sender.sendMessage(MM.deserialize(configuredMessage(
+                );
+                sendConfiguredMessage(
+                    sender,
                     "haven.reload-restart-required",
                     "<yellow>Restart required for hooks, economy, database, and service wiring changes."
-                )));
+                );
             }
             case "toggleop" -> toggleOp(sender);
             default -> sender.sendMessage(MM.deserialize(
@@ -104,15 +107,19 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
     }
 
     private void sendNoPermission(CommandSender sender) {
-        sender.sendMessage(MM.deserialize(configuredMessage("haven.no-permission", "<red>No permission.")));
+        sendConfiguredMessage(sender, "haven.no-permission", "<red>No permission.");
     }
 
-    private String configuredMessage(String key, String fallback) {
+    private void sendConfiguredMessage(CommandSender sender, String key, String fallback) {
+        configuredMessage(key, fallback).ifPresent(message -> sender.sendMessage(MM.deserialize(message)));
+    }
+
+    private Optional<String> configuredMessage(String key, String fallback) {
         String message = config.getMessage(key);
         if (message == null || message.isBlank()) {
-            return fallback;
+            return config.hasMessage(key) ? Optional.empty() : Optional.of(fallback);
         }
-        return message;
+        return Optional.of(message);
     }
 
     private void toggleOp(CommandSender sender) {
@@ -128,14 +135,15 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        sender.sendMessage(MM.deserialize(toggleSuccessMessage(result.newOpState().get())));
+        sendToggleSuccessMessage(sender, result.newOpState().get());
     }
 
-    private String toggleSuccessMessage(boolean enabled) {
+    private void sendToggleSuccessMessage(CommandSender sender, boolean enabled) {
         if (enabled) {
-            return configuredMessage("haven.toggleop-enabled", "<green>Operator mode enabled.");
+            sendConfiguredMessage(sender, "haven.toggleop-enabled", "<green>Operator mode enabled.");
+            return;
         }
-        return configuredMessage("haven.toggleop-disabled", "<green>Operator mode disabled.");
+        sendConfiguredMessage(sender, "haven.toggleop-disabled", "<green>Operator mode disabled.");
     }
 
     private void refreshOpToggleSettings() {
@@ -146,10 +154,11 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
     }
 
     private void sendToggleDenied(CommandSender sender) {
-        sender.sendMessage(MM.deserialize(configuredMessage(
+        sendConfiguredMessage(
+            sender,
             "haven.toggleop-denied",
             "<red>You are not allowed to use this command."
-        )));
+        );
     }
 
     private void sendStatus(CommandSender sender) {
