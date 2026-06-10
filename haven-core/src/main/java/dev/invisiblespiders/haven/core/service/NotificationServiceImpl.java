@@ -31,18 +31,27 @@ public class NotificationServiceImpl implements HavenNotificationService {
 
         // Default channel is CHAT unless key ends with a channel suffix
         MessageChannel channel = channelFromKey(key);
-        sendRaw(player, channel, applyPlaceholders(template, placeholders));
+        sendComponent(player, channel, applyPlaceholders(template, placeholders));
     }
 
     @Override
     public void broadcast(Collection<? extends Player> players, String key, Map<String, String> placeholders) {
-        players.forEach(p -> send(p, key, placeholders));
+        String template = config.getMessage(key);
+        if (template == null || template.isBlank()) return;
+
+        MessageChannel channel = channelFromKey(key);
+        Component component = applyPlaceholders(template, placeholders);
+        players.forEach(player -> sendComponent(player, channel, component));
     }
 
     @Override
     public void sendRaw(Player player, MessageChannel channel, String miniMessage) {
         if (miniMessage == null || miniMessage.isBlank()) return;
         Component component = MM.deserialize(miniMessage);
+        sendComponent(player, channel, component);
+    }
+
+    private void sendComponent(Player player, MessageChannel channel, Component component) {
         switch (channel) {
             case CHAT       -> player.sendMessage(component);
             case ACTION_BAR -> player.sendActionBar(component);
@@ -59,11 +68,11 @@ public class NotificationServiceImpl implements HavenNotificationService {
         config.reload();
     }
 
-    private String applyPlaceholders(String template, Map<String, String> placeholders) {
-        if (placeholders.isEmpty()) return template;
+    private Component applyPlaceholders(String template, Map<String, String> placeholders) {
+        if (placeholders.isEmpty()) return MM.deserialize(template);
         List<TagResolver> resolvers = new ArrayList<>(placeholders.size());
         placeholders.forEach((k, v) -> resolvers.add(Placeholder.parsed(k, v)));
-        return MM.serialize(MM.deserialize(template, TagResolver.resolver(resolvers)));
+        return MM.deserialize(template, TagResolver.resolver(resolvers));
     }
 
     private MessageChannel channelFromKey(String key) {
