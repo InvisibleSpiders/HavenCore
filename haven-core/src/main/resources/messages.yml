@@ -11,6 +11,8 @@ haven:
   reload-failure: "<red>HavenCore reload encountered errors. Check console."
   no-permission: "<red>You don't have permission to do that."
   toggleop-denied: "<red>You are not allowed to use this command."
+  toggleop-enabled: "<green>Operator mode enabled."
+  toggleop-disabled: "<green>Operator mode disabled."
   economy-unavailable: "<yellow>Economy is currently unavailable."
   hook-loaded: "<gray>[HavenCore] Hook loaded: <white><hook></white>"
   hook-unavailable: "<gray>[HavenCore] Hook unavailable (plugin not found): <white><hook></white>"

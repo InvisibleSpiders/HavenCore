@@ -259,9 +259,11 @@ class HavenCommandTest {
         OpToggleService opToggleService = mock(OpToggleService.class);
         Player player = mock(Player.class);
         when(opToggleService.toggle(player)).thenReturn(OpToggleService.ToggleResult.allowed(true));
+        ConfigManager config = mock(ConfigManager.class);
+        when(config.getMessage("haven.toggleop-enabled")).thenReturn("");
         HavenCommand command = new HavenCommand(
             mockPluginWithServices(),
-            mock(ConfigManager.class),
+            config,
             mock(HavenHookRegistry.class),
             null,
             opToggleService
@@ -272,6 +274,48 @@ class HavenCommandTest {
         verify(opToggleService).toggle(player);
         List<String> messages = sentPlainMessages(player);
         assertTrue(messages.stream().anyMatch(message -> message.contains("Operator mode enabled")));
+    }
+
+    @Test
+    void toggleOpEnabledUsesConfiguredMessage() {
+        OpToggleService opToggleService = mock(OpToggleService.class);
+        Player player = mock(Player.class);
+        when(opToggleService.toggle(player)).thenReturn(OpToggleService.ToggleResult.allowed(true));
+        ConfigManager config = mock(ConfigManager.class);
+        when(config.getMessage("haven.toggleop-enabled")).thenReturn("<green>Custom OP on.");
+        HavenCommand command = new HavenCommand(
+            mockPluginWithServices(),
+            config,
+            mock(HavenHookRegistry.class),
+            null,
+            opToggleService
+        );
+
+        command.onCommand(player, mock(Command.class), "haven", new String[] {"toggleop"});
+
+        List<String> messages = sentPlainMessages(player);
+        assertTrue(messages.stream().anyMatch(message -> message.contains("Custom OP on.")));
+    }
+
+    @Test
+    void toggleOpDisabledUsesConfiguredMessage() {
+        OpToggleService opToggleService = mock(OpToggleService.class);
+        Player player = mock(Player.class);
+        when(opToggleService.toggle(player)).thenReturn(OpToggleService.ToggleResult.allowed(false));
+        ConfigManager config = mock(ConfigManager.class);
+        when(config.getMessage("haven.toggleop-disabled")).thenReturn("<yellow>Custom OP off.");
+        HavenCommand command = new HavenCommand(
+            mockPluginWithServices(),
+            config,
+            mock(HavenHookRegistry.class),
+            null,
+            opToggleService
+        );
+
+        command.onCommand(player, mock(Command.class), "haven", new String[] {"toggleop"});
+
+        List<String> messages = sentPlainMessages(player);
+        assertTrue(messages.stream().anyMatch(message -> message.contains("Custom OP off.")));
     }
 
     @Test

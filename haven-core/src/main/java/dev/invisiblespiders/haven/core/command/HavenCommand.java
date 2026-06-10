@@ -128,8 +128,14 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
             return;
         }
 
-        String state = result.newOpState().get() ? "enabled" : "disabled";
-        sender.sendMessage(MM.deserialize("<green>Operator mode " + state + "."));
+        sender.sendMessage(MM.deserialize(toggleSuccessMessage(result.newOpState().get())));
+    }
+
+    private String toggleSuccessMessage(boolean enabled) {
+        if (enabled) {
+            return configuredMessage("haven.toggleop-enabled", "<green>Operator mode enabled.");
+        }
+        return configuredMessage("haven.toggleop-disabled", "<green>Operator mode disabled.");
     }
 
     private void refreshOpToggleSettings() {
