@@ -78,7 +78,7 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
             }
             case "reload"  -> {
                 if (!sender.hasPermission("haven.admin.reload")) {
-                    sender.sendMessage(MM.deserialize("<red>No permission."));
+                    sendNoPermission(sender);
                     return true;
                 }
                 config.reload();
@@ -102,8 +102,20 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
         if (sender.hasPermission(permission)) {
             return true;
         }
-        sender.sendMessage(MM.deserialize("<red>No permission."));
+        sendNoPermission(sender);
         return false;
+    }
+
+    private void sendNoPermission(CommandSender sender) {
+        sender.sendMessage(MM.deserialize(configuredMessage("haven.no-permission", "<red>No permission.")));
+    }
+
+    private String configuredMessage(String key, String fallback) {
+        String message = config.getMessage(key);
+        if (message == null || message.isBlank()) {
+            return fallback;
+        }
+        return message;
     }
 
     private void toggleOp(CommandSender sender) {
