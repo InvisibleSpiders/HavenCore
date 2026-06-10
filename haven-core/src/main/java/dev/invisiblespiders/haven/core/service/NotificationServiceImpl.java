@@ -65,7 +65,7 @@ public class NotificationServiceImpl implements HavenNotificationService {
 
     @Override
     public void reload() {
-        config.reload();
+        config.reloadMessages();
     }
 
     private Component applyPlaceholders(String template, Map<String, String> placeholders) {

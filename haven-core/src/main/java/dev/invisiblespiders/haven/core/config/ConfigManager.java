@@ -55,6 +55,10 @@ public class ConfigManager {
         opToggle = load("op-toggle.yml");
     }
 
+    public void reloadMessages() {
+        messages = load("messages.yml");
+    }
+
     private FileConfiguration load(String name) {
         return YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), name));
     }

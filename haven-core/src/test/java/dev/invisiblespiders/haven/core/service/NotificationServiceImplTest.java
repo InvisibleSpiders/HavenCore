@@ -45,6 +45,17 @@ class NotificationServiceImplTest {
         assertEquals("Hello <red>Haven.", sentPlainMessage(player));
     }
 
+    @Test
+    void reloadRefreshesOnlyMessageTemplates() {
+        ConfigManager config = mock(ConfigManager.class);
+        NotificationServiceImpl notifications = new NotificationServiceImpl(config);
+
+        notifications.reload();
+
+        verify(config).reloadMessages();
+        verify(config, times(0)).reload();
+    }
+
     private static String sentPlainMessage(Player player) {
         ArgumentCaptor<Component> messageCaptor = ArgumentCaptor.forClass(Component.class);
         verify(player).sendMessage(messageCaptor.capture());
