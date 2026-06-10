@@ -33,6 +33,18 @@ class NotificationServiceImplTest {
         assertEquals("Hello Haven.", sentPlainMessage(second));
     }
 
+    @Test
+    void placeholderValuesAreRenderedLiterally() {
+        ConfigManager config = mock(ConfigManager.class);
+        when(config.getMessage("notice.player")).thenReturn("<green>Hello <player>.");
+        Player player = mock(Player.class);
+        NotificationServiceImpl notifications = new NotificationServiceImpl(config);
+
+        notifications.send(player, "notice.player", Map.of("player", "<red>Haven"));
+
+        assertEquals("Hello <red>Haven.", sentPlainMessage(player));
+    }
+
     private static String sentPlainMessage(Player player) {
         ArgumentCaptor<Component> messageCaptor = ArgumentCaptor.forClass(Component.class);
         verify(player).sendMessage(messageCaptor.capture());
