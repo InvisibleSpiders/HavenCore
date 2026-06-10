@@ -55,6 +55,10 @@ Example LuckPerms assignment:
 
 When OP toggle is enabled, `/haven status` shows whether the feature is enabled and how many valid UUID/code entries were loaded. Startup and reload diagnostics warn about invalid UUIDs, invalid codes, duplicate codes, or enabling the feature without any valid players.
 
+## Configuration Diagnostics
+
+HavenCore checks its config files during startup and reload. Diagnostics warn about invalid values and unknown keys in `database.yml`, `economy.yml`, `storage.yml`, `hooks.yml`, and `op-toggle.yml` so typos can be fixed before they cause confusing behavior.
+
 ## Optional Hooks
 
 HavenCore soft-depends on these plugins when present so integrations load in the right order:
