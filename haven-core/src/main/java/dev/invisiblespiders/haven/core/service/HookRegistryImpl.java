@@ -28,10 +28,10 @@ public class HookRegistryImpl implements HavenHookRegistry {
     public void register(HavenHook hook) {
         hook.onEnable();
         hooks.put(hook.getClass(), hook);
-        if (hook.isAvailable()) {
+        if (hook.getStatus().isUsable()) {
             logger.info("Hook loaded: " + hook.getId());
         } else {
-            logger.info("Hook unavailable (plugin not found): " + hook.getId());
+            logger.info("Hook unavailable (" + hook.getStatus() + "): " + hook.getId());
         }
         eventBus.publish(new HookRegisteredEvent(hook));
     }

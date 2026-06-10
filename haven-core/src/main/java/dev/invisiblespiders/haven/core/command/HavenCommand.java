@@ -1,6 +1,7 @@
 package dev.invisiblespiders.haven.core.command;
 
 import dev.invisiblespiders.haven.api.hook.HavenHook;
+import dev.invisiblespiders.haven.api.hook.HavenHookStatus;
 import dev.invisiblespiders.haven.api.service.HavenCodexService;
 import dev.invisiblespiders.haven.api.service.HavenDataSource;
 import dev.invisiblespiders.haven.api.service.HavenEconomyService;
@@ -137,9 +138,9 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(MM.deserialize("<gold><bold>HavenCore</bold> <gray>v" + plugin.getPluginMeta().getVersion()));
         sender.sendMessage(MM.deserialize("<gray>Hooks:"));
         for (HavenHook hook : hooks.getAll()) {
-            String color = statusColor(hook.isAvailable());
+            String color = hookStatusColor(hook.getStatus());
             sender.sendMessage(MM.deserialize("  " + color + hook.getId()
-                + " <dark_gray>[" + statusLabel(hook.isAvailable(), "LOADED") + "]"
+                + " <dark_gray>[" + hook.getStatus() + "]"
                 + hookDetails(hook)));
         }
 
@@ -234,6 +235,14 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
 
     private String readyLabel(boolean ready) {
         return ready ? "READY" : "UNAVAILABLE";
+    }
+
+    private String hookStatusColor(HavenHookStatus status) {
+        return switch (status) {
+            case AVAILABLE -> "<green>";
+            case DISABLED, MISSING_PLUGIN -> "<gray>";
+            case API_ERROR, MISCONFIGURED -> "<yellow>";
+        };
     }
 
     private String diagnosticColor(DiagnosticSeverity severity) {

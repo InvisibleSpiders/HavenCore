@@ -1,5 +1,6 @@
 package dev.invisiblespiders.haven.core.hook;
 
+import dev.invisiblespiders.haven.api.hook.HavenHookStatus;
 import net.milkbowl.vault2.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
@@ -27,6 +28,7 @@ class VaultUnlockedHookTest {
             hook.onEnable();
 
             assertFalse(hook.isAvailable());
+            assertEquals(HavenHookStatus.MISSING_PLUGIN, hook.getStatus());
             assertNull(hook.getEconomy());
             verify(services).getRegistration(Economy.class);
         }
@@ -48,6 +50,7 @@ class VaultUnlockedHookTest {
             hook.onEnable();
 
             assertTrue(hook.isAvailable());
+            assertEquals(HavenHookStatus.MISCONFIGURED, hook.getStatus());
             assertFalse(hook.hasEconomyProvider());
             assertNull(hook.getEconomy());
             verify(services).getRegistration(Economy.class);
@@ -71,6 +74,7 @@ class VaultUnlockedHookTest {
             hook.onEnable();
 
             assertTrue(hook.isAvailable());
+            assertEquals(HavenHookStatus.AVAILABLE, hook.getStatus());
             assertTrue(hook.hasEconomyProvider());
             assertSame(economy, hook.getEconomy());
             verify(services).getRegistration(Economy.class);
@@ -95,6 +99,7 @@ class VaultUnlockedHookTest {
             hook.onDisable();
 
             assertFalse(hook.isAvailable());
+            assertEquals(HavenHookStatus.MISSING_PLUGIN, hook.getStatus());
             assertFalse(hook.hasEconomyProvider());
             assertNull(hook.getEconomy());
         }

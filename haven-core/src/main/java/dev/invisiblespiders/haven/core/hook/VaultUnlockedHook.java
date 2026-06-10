@@ -1,6 +1,7 @@
 package dev.invisiblespiders.haven.core.hook;
 
 import dev.invisiblespiders.haven.api.hook.HavenHook;
+import dev.invisiblespiders.haven.api.hook.HavenHookStatus;
 import net.milkbowl.vault2.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.RegisteredServiceProvider;
@@ -24,6 +25,17 @@ public class VaultUnlockedHook implements HavenHook {
 
     @Override
     public boolean isAvailable() { return pluginPresent || economy != null; }
+
+    @Override
+    public HavenHookStatus getStatus() {
+        if (economy != null) {
+            return HavenHookStatus.AVAILABLE;
+        }
+        if (pluginPresent) {
+            return HavenHookStatus.MISCONFIGURED;
+        }
+        return HavenHookStatus.MISSING_PLUGIN;
+    }
 
     @Override
     public void onDisable() {
