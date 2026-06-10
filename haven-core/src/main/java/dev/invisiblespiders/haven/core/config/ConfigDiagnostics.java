@@ -5,15 +5,64 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Predicate;
 import java.util.logging.Logger;
 
 public final class ConfigDiagnostics {
 
     private static final Set<String> DATABASE_TYPES = Set.of("sqlite", "mysql");
+    private static final Set<String> DATABASE_KEYS = Set.of(
+        "type",
+        "sqlite",
+        "sqlite.file",
+        "mysql",
+        "mysql.host",
+        "mysql.port",
+        "mysql.database",
+        "mysql.username",
+        "mysql.password",
+        "mysql.pool",
+        "mysql.pool.maximum-pool-size",
+        "mysql.pool.minimum-idle",
+        "mysql.pool.connection-timeout",
+        "mysql.pool.idle-timeout",
+        "mysql.pool.max-lifetime"
+    );
+    private static final Set<String> ECONOMY_KEYS = Set.of(
+        "preferred-adapter",
+        "item-currency",
+        "item-currency.enabled",
+        "item-currency.material",
+        "item-currency.pdc-tag",
+        "item-currency.display-name",
+        "item-currency.lore"
+    );
+    private static final Set<String> STORAGE_KEYS = Set.of(
+        "defaults",
+        "defaults.rows",
+        "max-per-player"
+    );
+    private static final Set<String> HOOK_KEYS = Set.of(
+        "hooks",
+        "hooks.vaultunlocked",
+        "hooks.vaultunlocked.enabled",
+        "hooks.placeholderapi",
+        "hooks.placeholderapi.enabled",
+        "hooks.luckperms",
+        "hooks.luckperms.enabled"
+    );
+    private static final Set<String> OP_TOGGLE_KEYS = Set.of(
+        "enabled",
+        "player",
+        "uuid",
+        "code",
+        "players"
+    );
 
     private ConfigDiagnostics() {}
 
@@ -54,6 +103,13 @@ public final class ConfigDiagnostics {
                             FileConfiguration storage, FileConfiguration hooks,
                             FileConfiguration opToggle,
                             boolean luckPermsInstalled, Logger logger) {
+        logUnknownKeyWarnings("database.yml", database, DATABASE_KEYS, key -> false, logger);
+        logUnknownKeyWarnings("economy.yml", economy, ECONOMY_KEYS, key -> false, logger);
+        logUnknownKeyWarnings("storage.yml", storage, STORAGE_KEYS, key -> false, logger);
+        logUnknownKeyWarnings("hooks.yml", hooks, HOOK_KEYS, key -> false, logger);
+        if (opToggle != null) {
+            logUnknownKeyWarnings("op-toggle.yml", opToggle, OP_TOGGLE_KEYS, ConfigDiagnostics::isOpTogglePlayerKey, logger);
+        }
         logDatabaseWarnings(database, logger);
         logEconomyWarnings(economy, logger);
         logStorageWarnings(storage, logger);
@@ -61,6 +117,44 @@ public final class ConfigDiagnostics {
         if (opToggle != null) {
             logOpToggleWarnings(opToggle, logger);
         }
+    }
+
+    private static void logUnknownKeyWarnings(String fileName, FileConfiguration config,
+                                              Set<String> allowedKeys, Predicate<String> dynamicAllowed,
+                                              Logger logger) {
+        Set<String> reportedUnknownParents = new HashSet<>();
+        for (String key : config.getKeys(true)) {
+            if (allowedKeys.contains(key) || dynamicAllowed.test(key)) {
+                continue;
+            }
+            if (hasReportedUnknownParent(key, reportedUnknownParents)) {
+                continue;
+            }
+            reportedUnknownParents.add(key);
+            logger.warning(fileName + " unknown key '" + key + "'; check spelling or remove it.");
+        }
+    }
+
+    private static boolean hasReportedUnknownParent(String key, Set<String> reportedUnknownParents) {
+        int separator = key.indexOf('.');
+        while (separator > 0) {
+            if (reportedUnknownParents.contains(key.substring(0, separator))) {
+                return true;
+            }
+            separator = key.indexOf('.', separator + 1);
+        }
+        return false;
+    }
+
+    private static boolean isOpTogglePlayerKey(String key) {
+        if (!key.startsWith("players.")) {
+            return false;
+        }
+        String[] parts = key.split("\\.");
+        if (parts.length == 2) {
+            return true;
+        }
+        return parts.length == 3 && Set.of("uuid", "code").contains(parts[2]);
     }
 
     private static void logDatabaseWarnings(FileConfiguration database, Logger logger) {

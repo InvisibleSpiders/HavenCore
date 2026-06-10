@@ -51,7 +51,9 @@ public class EconomyServiceImpl implements HavenEconomyService {
     }
 
     @Override
-    public boolean has(UUID uuid, double amount) { return money.has(uuid, amount); }
+    public boolean has(UUID uuid, double amount) {
+        return money.has(uuid, amount);
+    }
 
     @Override
     public String format(double amount) { return money.format(amount); }

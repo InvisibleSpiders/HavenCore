@@ -11,8 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 class EconomyServiceImplTest {
 
@@ -44,6 +43,28 @@ class EconomyServiceImplTest {
 
         assertFalse(deposited);
         assertTrue(events.isEmpty());
+    }
+
+    @Test
+    void uuidMoneyOpsStillDelegateWhenItemAdapterIsPreferred() {
+        MoneyEconomyAdapter money = mock(MoneyEconomyAdapter.class);
+        EconomyServiceImpl service = new EconomyServiceImpl(
+            money,
+            mock(ItemEconomyAdapter.class),
+            new EventBusImpl(),
+            EconomySettings.Adapter.ITEM
+        );
+        UUID uuid = UUID.randomUUID();
+        when(money.has(uuid, 10.0)).thenReturn(true);
+        when(money.withdraw(uuid, 10.0)).thenReturn(true);
+        when(money.deposit(uuid, 10.0)).thenReturn(true);
+
+        assertTrue(service.has(uuid, 10.0));
+        assertTrue(service.withdraw(uuid, 10.0));
+        assertTrue(service.deposit(uuid, 10.0));
+        verify(money).has(uuid, 10.0);
+        verify(money).withdraw(uuid, 10.0);
+        verify(money).deposit(uuid, 10.0);
     }
 
     @Test

@@ -44,12 +44,12 @@ public class CodexRepository {
     public int countByCategory(UUID playerUuid, String categoryId) throws SQLException {
         String sql = """
             SELECT COUNT(*) FROM haven_codex_progress
-            WHERE player_uuid = ? AND entry_key LIKE ?
+            WHERE player_uuid = ? AND entry_key LIKE ? ESCAPE '\\'
             """;
-        // entry keys are prefixed "category:key" by convention
+        String escaped = categoryId.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
         try (Connection c = ds.getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, playerUuid.toString());
-            ps.setString(2, categoryId + ":%");
+            ps.setString(2, escaped + ":%");
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next() ? rs.getInt(1) : 0;
             }

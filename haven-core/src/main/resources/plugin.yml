@@ -18,7 +18,7 @@ softdepend:
 commands:
   haven:
     description: HavenCore admin command
-    usage: /haven [help|status|version|reload|toggleop]
+    usage: /haven [help|status|doctor|version|reload|toggleop]
 
 permissions:
   haven.use:
@@ -29,9 +29,13 @@ permissions:
     default: op
     children:
       haven.admin.reload: true
+      haven.admin.doctor: true
       haven.admin.codex: true
   haven.admin.reload:
     description: Reload HavenCore configuration
+    default: op
+  haven.admin.doctor:
+    description: Run HavenCore diagnostic checks
     default: op
   haven.admin.codex:
     description: View player codex data

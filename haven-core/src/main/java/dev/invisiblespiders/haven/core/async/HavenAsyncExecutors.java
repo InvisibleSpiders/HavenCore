@@ -9,7 +9,7 @@ import java.util.logging.Logger;
 
 public final class HavenAsyncExecutors {
 
-    private static final long SHUTDOWN_TIMEOUT_SECONDS = 2;
+    private static final long SHUTDOWN_TIMEOUT_SECONDS = 10;
 
     private HavenAsyncExecutors() {}
 
