@@ -11,12 +11,15 @@ import java.util.UUID;
 public class ExcellentEconomyAdapter implements EconomyAdapter {
 
     private final ExcellentEconomyHook hook;
-    private final String currencyId;
+    private volatile String currencyId;
 
     public ExcellentEconomyAdapter(ExcellentEconomyHook hook, String currencyId) {
         this.hook = hook;
         this.currencyId = currencyId;
     }
+
+    @Override
+    public void setCurrencyId(String id) { this.currencyId = id; }
 
     @Override
     public boolean isAvailable() { return hook.hasApiProvider(); }

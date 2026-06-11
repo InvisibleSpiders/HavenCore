@@ -60,7 +60,7 @@ public record EconomySettings(
             config.getString("item-currency.pdc-tag", "haven:currency"),
             config.getString("item-currency.display-name", "<green>Haven Coin"),
             config.getStringList("item-currency.lore"),
-            config.getString("excellent-economy.currency-id", "coins")
+            config.getString("excellent-economy.currency-id", "vault")
         );
     }
 

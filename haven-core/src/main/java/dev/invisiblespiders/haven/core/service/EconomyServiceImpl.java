@@ -1,10 +1,10 @@
 package dev.invisiblespiders.haven.core.service;
 
 import dev.invisiblespiders.haven.api.event.HavenEconomyTransactionEvent;
+import dev.invisiblespiders.haven.api.model.EconomyAdapter;
 import dev.invisiblespiders.haven.api.service.HavenEconomyService;
 import dev.invisiblespiders.haven.api.service.HavenEventBus;
 import dev.invisiblespiders.haven.core.config.EconomySettings;
-import dev.invisiblespiders.haven.api.model.EconomyAdapter;
 import dev.invisiblespiders.haven.core.economy.ItemEconomyAdapter;
 import org.bukkit.entity.Player;
 
@@ -57,6 +57,9 @@ public class EconomyServiceImpl implements HavenEconomyService {
 
     @Override
     public String format(double amount) { return money.format(amount); }
+
+    @Override
+    public void setMoneyCurrencyId(String currencyId) { money.setCurrencyId(currencyId); }
 
     @Override
     public int getItemBalance(Player player)         { return item.countItems(player); }
