@@ -4,24 +4,24 @@ import dev.invisiblespiders.haven.api.event.HavenEconomyTransactionEvent;
 import dev.invisiblespiders.haven.api.service.HavenEconomyService;
 import dev.invisiblespiders.haven.api.service.HavenEventBus;
 import dev.invisiblespiders.haven.core.config.EconomySettings;
+import dev.invisiblespiders.haven.api.model.EconomyAdapter;
 import dev.invisiblespiders.haven.core.economy.ItemEconomyAdapter;
-import dev.invisiblespiders.haven.core.economy.MoneyEconomyAdapter;
 import org.bukkit.entity.Player;
 
 import java.util.UUID;
 
 public class EconomyServiceImpl implements HavenEconomyService {
 
-    private final MoneyEconomyAdapter money;
+    private final EconomyAdapter money;
     private final ItemEconomyAdapter  item;
     private final HavenEventBus eventBus;
     private final EconomySettings.Adapter preferredAdapter;
 
-    public EconomyServiceImpl(MoneyEconomyAdapter money, ItemEconomyAdapter item, HavenEventBus eventBus) {
+    public EconomyServiceImpl(EconomyAdapter money, ItemEconomyAdapter item, HavenEventBus eventBus) {
         this(money, item, eventBus, EconomySettings.Adapter.MONEY);
     }
 
-    public EconomyServiceImpl(MoneyEconomyAdapter money, ItemEconomyAdapter item, HavenEventBus eventBus,
+    public EconomyServiceImpl(EconomyAdapter money, ItemEconomyAdapter item, HavenEventBus eventBus,
                               EconomySettings.Adapter preferredAdapter) {
         this.money = money;
         this.item = item;

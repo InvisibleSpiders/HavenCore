@@ -20,10 +20,13 @@ dependencies {
     compileOnly("net.milkbowl.vault:VaultUnlockedAPI:2.19")
     compileOnly("me.clip:placeholderapi:2.11.6")
     compileOnly("net.luckperms:api:5.4")
+    compileOnly("su.nightexpress.excellenteconomy:ExcellentEconomy:2.8.0")
 
     // Paper API is compileOnly above; tests that touch Bukkit types need it too
     testImplementation("io.papermc.paper:paper-api:26.1.2.build.69-stable")
     testImplementation("net.milkbowl.vault:VaultUnlockedAPI:2.19")
+    testImplementation("su.nightexpress.excellenteconomy:ExcellentEconomy:2.8.0")
+    testImplementation("su.nightexpress.nightcore:main:2.16.2")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
     testImplementation("org.mockito:mockito-core:5.23.0")
     testImplementation("org.xerial:sqlite-jdbc:3.47.0.0")
