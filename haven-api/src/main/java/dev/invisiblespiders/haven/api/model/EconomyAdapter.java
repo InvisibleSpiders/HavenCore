@@ -16,4 +16,7 @@ public interface EconomyAdapter {
     boolean deposit(UUID uuid, double amount);
 
     String format(double amount);
+
+    /** Sets the currency identifier used by this adapter. No-op for adapters that don't support it. */
+    default void setCurrencyId(String id) {}
 }

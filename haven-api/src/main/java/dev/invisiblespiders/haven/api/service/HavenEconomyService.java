@@ -27,6 +27,12 @@ public interface HavenEconomyService {
     /** Formats the amount using the active economy's format. */
     String format(double amount);
 
+    /**
+     * Configures which currency the money adapter uses.
+     * Has no effect on adapters that don't support multi-currency (e.g. VaultUnlocked).
+     */
+    void setMoneyCurrencyId(String currencyId);
+
     /** Item economy: count currency items in player's inventory. */
     int getItemBalance(Player player);
 

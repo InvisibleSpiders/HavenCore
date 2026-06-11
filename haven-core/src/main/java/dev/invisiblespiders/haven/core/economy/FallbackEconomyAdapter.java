@@ -26,6 +26,11 @@ public class FallbackEconomyAdapter implements EconomyAdapter {
     }
 
     @Override
+    public void setCurrencyId(String id) {
+        adapters.forEach(a -> a.setCurrencyId(id));
+    }
+
+    @Override
     public boolean isAvailable() { return active() != null; }
 
     @Override
