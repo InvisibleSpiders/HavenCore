@@ -29,7 +29,7 @@ public class VaultUnlockedHook implements HavenHook {
 
     @Override
     public HavenHookStatus getStatus() {
-        if (economy != null) {
+        if (hasEconomyProvider()) {
             return HavenHookStatus.AVAILABLE;
         }
         if (pluginPresent) {

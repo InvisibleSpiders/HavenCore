@@ -28,7 +28,7 @@ public class HookRegistryImpl implements HavenHookRegistry {
     public void register(HavenHook hook) {
         hook.onEnable();
         hooks.put(hook.getClass(), hook);
-        if (hook.getStatus().isUsable()) {
+        if (hook.isAvailable()) {
             logger.info("Hook loaded: " + hook.getId());
         } else {
             logger.info("Hook unavailable (" + hook.getStatus() + "): " + hook.getId());
