@@ -12,7 +12,8 @@ public record EconomySettings(
     Material itemMaterial,
     String itemCurrencyTag,
     String itemDisplayName,
-    List<String> itemLore
+    List<String> itemLore,
+    String excellentEconomyCurrencyId
 ) {
 
     public enum Adapter {
@@ -58,7 +59,8 @@ public record EconomySettings(
             material,
             config.getString("item-currency.pdc-tag", "haven:currency"),
             config.getString("item-currency.display-name", "<green>Haven Coin"),
-            config.getStringList("item-currency.lore")
+            config.getStringList("item-currency.lore"),
+            config.getString("excellent-economy.currency-id", "coins")
         );
     }
 

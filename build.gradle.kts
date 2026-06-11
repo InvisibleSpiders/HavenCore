@@ -15,6 +15,8 @@ allprojects {
         // VaultUnlockedAPI + LuckPerms snapshots
         maven("https://repo.codemc.io/repository/maven-public/")
         maven("https://repo.codemc.io/repository/creatorfromhell/")
+        // ExcellentEconomy
+        maven("https://repo.nightexpressdev.com/releases")
         // JitPack fallback for misc deps
         maven("https://jitpack.io")
     }

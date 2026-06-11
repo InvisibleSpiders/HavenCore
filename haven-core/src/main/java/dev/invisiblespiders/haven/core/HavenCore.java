@@ -9,9 +9,12 @@ import dev.invisiblespiders.haven.core.config.EconomySettings;
 import dev.invisiblespiders.haven.core.config.HookSettings;
 import dev.invisiblespiders.haven.core.config.OpToggleSettings;
 import dev.invisiblespiders.haven.core.config.StorageSettings;
+import dev.invisiblespiders.haven.core.economy.ExcellentEconomyAdapter;
+import dev.invisiblespiders.haven.core.economy.FallbackEconomyAdapter;
 import dev.invisiblespiders.haven.core.economy.ItemEconomyAdapter;
 import dev.invisiblespiders.haven.core.economy.MoneyEconomyAdapter;
 import dev.invisiblespiders.haven.core.gui.GuiListener;
+import dev.invisiblespiders.haven.core.hook.ExcellentEconomyHook;
 import dev.invisiblespiders.haven.core.hook.PlaceholderAPIHook;
 import dev.invisiblespiders.haven.core.hook.VaultUnlockedHook;
 import dev.invisiblespiders.haven.core.repository.CodexRepository;
@@ -65,10 +68,12 @@ public class HavenCore extends JavaPlugin {
 
         // Hooks
         VaultUnlockedHook vaultHook = new VaultUnlockedHook();
+        ExcellentEconomyHook eeHook  = new ExcellentEconomyHook();
         PlaceholderAPIHook papiHook  = new PlaceholderAPIHook();
         HookSettings hookSettings = HookSettings.from(configManager.getHooks());
-        if (hookSettings.vaultUnlockedEnabled()) hookRegistry.register(vaultHook);
-        if (hookSettings.placeholderApiEnabled()) hookRegistry.register(papiHook);
+        if (hookSettings.vaultUnlockedEnabled())    hookRegistry.register(vaultHook);
+        if (hookSettings.excellentEconomyEnabled()) hookRegistry.register(eeHook);
+        if (hookSettings.placeholderApiEnabled())   hookRegistry.register(papiHook);
 
         // Economy
         EconomySettings economySettings = EconomySettings.from(configManager.getEconomy());
@@ -80,7 +85,11 @@ public class HavenCore extends JavaPlugin {
             economySettings.itemDisplayName(),
             economySettings.itemLore()
         );
-        MoneyEconomyAdapter moneyEco = new MoneyEconomyAdapter(vaultHook);
+        // ExcellentEconomy first (native), VaultUnlocked as fallback
+        FallbackEconomyAdapter moneyEco = new FallbackEconomyAdapter(
+            new ExcellentEconomyAdapter(eeHook, economySettings.excellentEconomyCurrencyId()),
+            new MoneyEconomyAdapter(vaultHook)
+        );
         EconomyServiceImpl economyService = new EconomyServiceImpl(
             moneyEco, itemEco, eventBus, economySettings.preferredAdapter()
         );
