@@ -2,8 +2,11 @@ package dev.invisiblespiders.haven.core;
 
 import com.zaxxer.hikari.HikariConfig;
 import dev.invisiblespiders.haven.api.service.*;
+import dev.invisiblespiders.haven.api.service.HavenSuiteRegistry;
 import dev.invisiblespiders.haven.core.async.HavenAsyncExecutors;
 import dev.invisiblespiders.haven.core.command.HavenCommand;
+import dev.invisiblespiders.haven.core.suite.CoreSuiteEntry;
+import dev.invisiblespiders.haven.core.suite.HavenSuiteRegistryImpl;
 import dev.invisiblespiders.haven.core.config.ConfigManager;
 import dev.invisiblespiders.haven.core.config.EconomySettings;
 import dev.invisiblespiders.haven.core.config.HookSettings;
@@ -35,6 +38,7 @@ public class HavenCore extends JavaPlugin {
     private DataSourceImpl dataSource;
     private HookRegistryImpl hookRegistry;
     private ExecutorService asyncExecutor;
+    private HavenSuiteRegistryImpl suiteRegistry;
 
     @Override
     public void onEnable() {
@@ -117,6 +121,12 @@ public class HavenCore extends JavaPlugin {
         // GUI listener
         getServer().getPluginManager().registerEvents(new GuiListener(), this);
 
+        // Suite registry — must be after hookRegistry and opToggleService are created
+        suiteRegistry = new HavenSuiteRegistryImpl();
+        suiteRegistry.register(new CoreSuiteEntry(
+            this, configManager, hookRegistry, asyncExecutor, opToggleService
+        ));
+
         // Register all services with Bukkit ServicesManager
         var sm = getServer().getServicesManager();
         sm.register(HavenEventBus.class,         eventBus,       this, ServicePriority.Normal);
@@ -130,10 +140,11 @@ public class HavenCore extends JavaPlugin {
         sm.register(HavenStorageService.class,    storageService, this, ServicePriority.Normal);
         sm.register(HavenCodexService.class,      codexService,   this, ServicePriority.Normal);
         sm.register(HavenDataSource.class,        dataSource,     this, ServicePriority.Normal);
+        sm.register(HavenSuiteRegistry.class,     suiteRegistry,  this, ServicePriority.Normal);
 
         // Commands
         HavenCommand cmd = new HavenCommand(
-            this, configManager, hookRegistry, asyncExecutor, opToggleService
+            this, configManager, hookRegistry, asyncExecutor, opToggleService, suiteRegistry
         );
         var havenCmd = getCommand("haven");
         if (havenCmd != null) {

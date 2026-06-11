@@ -5,10 +5,14 @@ import dev.invisiblespiders.haven.api.hook.HavenHookStatus;
 import dev.invisiblespiders.haven.api.service.HavenCodexService;
 import dev.invisiblespiders.haven.api.service.HavenDataSource;
 import dev.invisiblespiders.haven.api.service.HavenEconomyService;
+import dev.invisiblespiders.haven.api.model.ReloadResult;
 import dev.invisiblespiders.haven.api.service.HavenHookRegistry;
 import dev.invisiblespiders.haven.api.service.HavenStorageService;
+import dev.invisiblespiders.haven.api.service.HavenSuiteEntry;
+import dev.invisiblespiders.haven.api.service.HavenSuiteRegistry;
 import dev.invisiblespiders.haven.core.config.ConfigManager;
 import dev.invisiblespiders.haven.core.config.OpToggleSettings;
+import dev.invisiblespiders.haven.core.suite.SuiteStatusDialog;
 import dev.invisiblespiders.haven.core.diagnostic.CoreDiagnostics;
 import dev.invisiblespiders.haven.core.diagnostic.DiagnosticResult;
 import dev.invisiblespiders.haven.core.diagnostic.DiagnosticSeverity;
@@ -36,6 +40,7 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
     private final HavenHookRegistry hooks;
     private final ExecutorService asyncExecutor;
     private final OpToggleService opToggleService;
+    private final HavenSuiteRegistry suiteRegistry;
 
     public HavenCommand(Plugin plugin, ConfigManager config, HavenHookRegistry hooks) {
         this(plugin, config, hooks, null, null);
@@ -47,11 +52,18 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
 
     public HavenCommand(Plugin plugin, ConfigManager config, HavenHookRegistry hooks,
                         ExecutorService asyncExecutor, OpToggleService opToggleService) {
+        this(plugin, config, hooks, asyncExecutor, opToggleService, null);
+    }
+
+    public HavenCommand(Plugin plugin, ConfigManager config, HavenHookRegistry hooks,
+                        ExecutorService asyncExecutor, OpToggleService opToggleService,
+                        HavenSuiteRegistry suiteRegistry) {
         this.plugin = plugin;
         this.config = config;
         this.hooks = hooks;
         this.asyncExecutor = asyncExecutor;
         this.opToggleService = opToggleService;
+        this.suiteRegistry = suiteRegistry;
     }
 
     @Override
@@ -68,7 +80,13 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
                 if (requirePermission(sender, "haven.use")) sendHelp(sender);
             }
             case "status"  -> {
-                if (requirePermission(sender, "haven.use")) sendStatus(sender);
+                if (requirePermission(sender, "haven.use")) {
+                    if (sender instanceof Player player && suiteRegistry != null) {
+                        SuiteStatusDialog.show(player, suiteRegistry);
+                    } else {
+                        sendStatus(sender);
+                    }
+                }
             }
             case "doctor"  -> {
                 if (requirePermission(sender, "haven.admin.doctor")) sendDoctor(sender);
@@ -81,14 +99,30 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
                     sendNoPermission(sender);
                     return true;
                 }
-                config.reload();
-                if (opToggleService != null) {
-                    opToggleService.reload(OpToggleSettings.from(config.getOpToggle()));
+                if (args.length >= 2) {
+                    handleRegistryReload(sender, args[1]);
+                } else {
+                    if (suiteRegistry != null) {
+                        suiteRegistry.get("HavenCore").ifPresentOrElse(
+                            entry -> {
+                                ReloadResult r = entry.reload();
+                                sender.sendMessage(MM.deserialize(r.succeeded() ? "<green>" + r.message() : "<red>" + r.message()));
+                                sender.sendMessage(MM.deserialize("<yellow>Restart required for hooks, economy, database, and service wiring changes."));
+                            },
+                            () -> {
+                                config.reload();
+                                sender.sendMessage(MM.deserialize("<green>HavenCore configuration files reloaded."));
+                            }
+                        );
+                    } else {
+                        config.reload();
+                        if (opToggleService != null) {
+                            opToggleService.reload(OpToggleSettings.from(config.getOpToggle()));
+                        }
+                        sender.sendMessage(MM.deserialize("<green>HavenCore configuration files reloaded."));
+                        sender.sendMessage(MM.deserialize("<yellow>Restart required for hooks, economy, database, and service wiring changes."));
+                    }
                 }
-                sender.sendMessage(MM.deserialize("<green>HavenCore configuration files reloaded."));
-                sender.sendMessage(MM.deserialize(
-                    "<yellow>Restart required for hooks, economy, database, and service wiring changes."
-                ));
             }
             case "toggleop" -> toggleOp(sender);
             default -> sender.sendMessage(MM.deserialize(
@@ -144,6 +178,34 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
 
     private void sendToggleDenied(CommandSender sender) {
         sender.sendMessage(MM.deserialize("<red>You are not allowed to use this command."));
+    }
+
+    private void handleRegistryReload(CommandSender sender, String target) {
+        if (suiteRegistry == null) {
+            sender.sendMessage(MM.deserialize("<red>Suite registry not available."));
+            return;
+        }
+        if ("all".equalsIgnoreCase(target)) {
+            int ok = 0, fail = 0;
+            for (HavenSuiteEntry entry : suiteRegistry.getAll()) {
+                ReloadResult r = entry.reload();
+                String color = r.succeeded() ? "<green>" : "<red>";
+                sender.sendMessage(MM.deserialize(color + entry.pluginName() + ": " + r.message()));
+                if (r.succeeded()) ok++; else fail++;
+            }
+            sender.sendMessage(MM.deserialize("<gray>Reloaded: <green>" + ok + " <gray>Failed: <red>" + fail));
+        } else {
+            suiteRegistry.get(target).ifPresentOrElse(
+                entry -> {
+                    ReloadResult r = entry.reload();
+                    String color = r.succeeded() ? "<green>" : "<red>";
+                    sender.sendMessage(MM.deserialize(color + r.message()));
+                },
+                () -> sender.sendMessage(MM.deserialize("<red>Unknown plugin: " + target
+                    + ". Registered: " + suiteRegistry.getAll().stream()
+                        .map(HavenSuiteEntry::pluginName).toList()))
+            );
+        }
     }
 
     private void sendStatus(CommandSender sender) {
@@ -306,6 +368,21 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
             return subcommands.stream()
                 .sorted()
                 .filter(subcommand -> subcommand.startsWith(prefix))
+                .toList();
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("reload")
+                && sender.hasPermission("haven.admin.reload")) {
+            List<String> targets = new ArrayList<>();
+            targets.add("all");
+            if (suiteRegistry != null) {
+                suiteRegistry.getAll().stream()
+                    .map(HavenSuiteEntry::pluginName)
+                    .forEach(targets::add);
+            }
+            String prefix = args[1].toLowerCase();
+            return targets.stream()
+                .filter(t -> t.toLowerCase().startsWith(prefix))
+                .sorted()
                 .toList();
         }
         return List.of();
