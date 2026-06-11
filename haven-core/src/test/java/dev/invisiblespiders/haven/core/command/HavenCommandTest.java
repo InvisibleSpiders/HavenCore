@@ -6,6 +6,9 @@ import dev.invisiblespiders.haven.api.service.HavenCodexService;
 import dev.invisiblespiders.haven.api.service.HavenDataSource;
 import dev.invisiblespiders.haven.api.service.HavenEconomyService;
 import dev.invisiblespiders.haven.api.service.HavenStorageService;
+import dev.invisiblespiders.haven.api.model.ReloadResult;
+import dev.invisiblespiders.haven.api.service.HavenSuiteEntry;
+import dev.invisiblespiders.haven.api.service.HavenSuiteRegistry;
 import dev.invisiblespiders.haven.core.config.ConfigManager;
 import dev.invisiblespiders.haven.core.config.OpToggleSettings;
 import dev.invisiblespiders.haven.core.hook.VaultUnlockedHook;
@@ -28,6 +31,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -374,5 +378,73 @@ class HavenCommandTest {
             messages.add(PlainTextComponentSerializer.plainText().serialize(component));
         }
         return messages;
+    }
+
+    @Test
+    void reloadAllDispatchesToAllRegisteredEntries() {
+        Plugin plugin = mock(Plugin.class);
+        ConfigManager config = mock(ConfigManager.class);
+        HavenHookRegistry hooks = mock(HavenHookRegistry.class);
+        when(hooks.getAll()).thenReturn(List.of());
+        HavenSuiteRegistry registry = mock(HavenSuiteRegistry.class);
+        HavenSuiteEntry entryA = suiteEntry("PluginA");
+        HavenSuiteEntry entryB = suiteEntry("PluginB");
+        when(registry.getAll()).thenReturn(List.of(entryA, entryB));
+        CommandSender sender = mock(CommandSender.class);
+        when(sender.hasPermission("haven.admin.reload")).thenReturn(true);
+
+        HavenCommand cmd = new HavenCommand(plugin, config, hooks, null, null, registry);
+        cmd.onCommand(sender, mock(Command.class), "haven", new String[]{"reload", "all"});
+
+        verify(entryA).reload();
+        verify(entryB).reload();
+    }
+
+    @Test
+    void reloadSpecificPluginDispatchesToThatEntryOnly() {
+        Plugin plugin = mock(Plugin.class);
+        ConfigManager config = mock(ConfigManager.class);
+        HavenHookRegistry hooks = mock(HavenHookRegistry.class);
+        when(hooks.getAll()).thenReturn(List.of());
+        HavenSuiteRegistry registry = mock(HavenSuiteRegistry.class);
+        HavenSuiteEntry entry = suiteEntry("HavenVault");
+        when(registry.get("HavenVault")).thenReturn(Optional.of(entry));
+        CommandSender sender = mock(CommandSender.class);
+        when(sender.hasPermission("haven.admin.reload")).thenReturn(true);
+
+        HavenCommand cmd = new HavenCommand(plugin, config, hooks, null, null, registry);
+        cmd.onCommand(sender, mock(Command.class), "haven", new String[]{"reload", "HavenVault"});
+
+        verify(entry).reload();
+    }
+
+    @Test
+    void reloadUnknownPluginSendsErrorMessage() {
+        Plugin plugin = mock(Plugin.class);
+        ConfigManager config = mock(ConfigManager.class);
+        HavenHookRegistry hooks = mock(HavenHookRegistry.class);
+        when(hooks.getAll()).thenReturn(List.of());
+        HavenSuiteRegistry registry = mock(HavenSuiteRegistry.class);
+        when(registry.get("Nonexistent")).thenReturn(Optional.empty());
+        when(registry.getAll()).thenReturn(List.of());
+        CommandSender sender = mock(CommandSender.class);
+        when(sender.hasPermission("haven.admin.reload")).thenReturn(true);
+
+        HavenCommand cmd = new HavenCommand(plugin, config, hooks, null, null, registry);
+        cmd.onCommand(sender, mock(Command.class), "haven", new String[]{"reload", "Nonexistent"});
+
+        ArgumentCaptor<Component> captor = ArgumentCaptor.forClass(Component.class);
+        verify(sender, atLeastOnce()).sendMessage(captor.capture());
+        String text = PlainTextComponentSerializer.plainText().serialize(captor.getAllValues().get(0));
+        assertTrue(text.contains("Unknown plugin"), "Expected 'Unknown plugin' in: " + text);
+    }
+
+    private static HavenSuiteEntry suiteEntry(String name) {
+        HavenSuiteEntry entry = mock(HavenSuiteEntry.class);
+        when(entry.pluginName()).thenReturn(name);
+        when(entry.pluginVersion()).thenReturn("1.0.0");
+        when(entry.health()).thenReturn(List.of());
+        when(entry.reload()).thenReturn(ReloadResult.ok("Reloaded."));
+        return entry;
     }
 }
