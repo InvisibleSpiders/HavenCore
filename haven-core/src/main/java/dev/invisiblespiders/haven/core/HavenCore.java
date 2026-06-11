@@ -144,7 +144,7 @@ public class HavenCore extends JavaPlugin {
 
         // Commands
         HavenCommand cmd = new HavenCommand(
-            this, configManager, hookRegistry, asyncExecutor, opToggleService
+            this, configManager, hookRegistry, asyncExecutor, opToggleService, suiteRegistry
         );
         var havenCmd = getCommand("haven");
         if (havenCmd != null) {
