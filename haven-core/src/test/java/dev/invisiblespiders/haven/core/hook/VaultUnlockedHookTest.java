@@ -51,9 +51,12 @@ class VaultUnlockedHookTest {
             VaultUnlockedHook hook = new VaultUnlockedHook();
             hook.onEnable();
 
+            // isAvailable() reflects pluginPresent — true before provider registers.
             assertTrue(hook.isAvailable());
+            // hasEconomyProvider() does the lazy lookup — still no provider in this test.
             assertFalse(hook.hasEconomyProvider());
             assertNull(hook.getEconomy());
+            // getStatus() is MISCONFIGURED because provider query returned null.
             assertEquals(HavenHookStatus.MISCONFIGURED, hook.getStatus());
         }
     }
