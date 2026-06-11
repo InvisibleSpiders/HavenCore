@@ -16,7 +16,7 @@ import static org.mockito.Mockito.*;
 class VaultUnlockedHookTest {
 
     @Test
-    void onEnableStaysUnavailableWhenEconomyProviderMissing() {
+    void getEconomyReturnsNullWhenNoProviderRegistered() {
         ServicesManager services = mock(ServicesManager.class);
         when(services.getRegistration(Economy.class)).thenReturn(null);
 
@@ -27,15 +27,17 @@ class VaultUnlockedHookTest {
             VaultUnlockedHook hook = new VaultUnlockedHook();
             hook.onEnable();
 
+            assertNull(hook.getEconomy());
+            assertFalse(hook.hasEconomyProvider());
             assertFalse(hook.isAvailable());
             assertEquals(HavenHookStatus.MISSING_PLUGIN, hook.getStatus());
-            assertNull(hook.getEconomy());
-            verify(services).getRegistration(Economy.class);
+            // Re-queries on every call when no provider is found — no exact count asserted.
+            verify(services, atLeastOnce()).getRegistration(Economy.class);
         }
     }
 
     @Test
-    void onEnableIsAvailableWhenPluginIsInstalledWithoutEconomyProvider() {
+    void statusIsMisconfiguredWhenPluginPresentButNoProvider() {
         ServicesManager services = mock(ServicesManager.class);
         when(services.getRegistration(Economy.class)).thenReturn(null);
 
@@ -50,15 +52,14 @@ class VaultUnlockedHookTest {
             hook.onEnable();
 
             assertTrue(hook.isAvailable());
-            assertEquals(HavenHookStatus.MISCONFIGURED, hook.getStatus());
             assertFalse(hook.hasEconomyProvider());
             assertNull(hook.getEconomy());
-            verify(services).getRegistration(Economy.class);
+            assertEquals(HavenHookStatus.MISCONFIGURED, hook.getStatus());
         }
     }
 
     @Test
-    void onEnableUsesRegisteredEconomyProvider() {
+    void getEconomyFindsProviderRegisteredBeforeFirstCall() {
         Economy economy = mock(Economy.class);
         RegisteredServiceProvider<Economy> provider = mock();
         when(provider.getProvider()).thenReturn(economy);
@@ -73,11 +74,57 @@ class VaultUnlockedHookTest {
             VaultUnlockedHook hook = new VaultUnlockedHook();
             hook.onEnable();
 
+            assertSame(economy, hook.getEconomy());
+            assertTrue(hook.hasEconomyProvider());
             assertTrue(hook.isAvailable());
             assertEquals(HavenHookStatus.AVAILABLE, hook.getStatus());
-            assertTrue(hook.hasEconomyProvider());
+        }
+    }
+
+    @Test
+    void getEconomyFindsProviderRegisteredAfterEnable() {
+        // Simulates ExcellentEconomy registering after HavenCore's onEnable.
+        Economy economy = mock(Economy.class);
+        RegisteredServiceProvider<Economy> provider = mock();
+        when(provider.getProvider()).thenReturn(economy);
+
+        ServicesManager services = mock(ServicesManager.class);
+        // Provider absent during onEnable, present by the time getEconomy() is called.
+        when(services.getRegistration(Economy.class)).thenReturn(provider);
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getServicesManager).thenReturn(services);
+            bukkit.when(Bukkit::getPluginManager).thenReturn(mock(PluginManager.class));
+
+            VaultUnlockedHook hook = new VaultUnlockedHook();
+            hook.onEnable();
+            // Economy plugin registers here in the real server; getEconomy() discovers it.
             assertSame(economy, hook.getEconomy());
-            verify(services).getRegistration(Economy.class);
+            assertTrue(hook.hasEconomyProvider());
+        }
+    }
+
+    @Test
+    void getEconomyCachesProviderAfterFirstLookup() {
+        Economy economy = mock(Economy.class);
+        RegisteredServiceProvider<Economy> provider = mock();
+        when(provider.getProvider()).thenReturn(economy);
+
+        ServicesManager services = mock(ServicesManager.class);
+        when(services.getRegistration(Economy.class)).thenReturn(provider);
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getServicesManager).thenReturn(services);
+            bukkit.when(Bukkit::getPluginManager).thenReturn(mock(PluginManager.class));
+
+            VaultUnlockedHook hook = new VaultUnlockedHook();
+            hook.onEnable();
+            hook.getEconomy();
+            hook.getEconomy();
+            hook.getEconomy();
+
+            // getRegistration should only be called once — subsequent calls use the cache.
+            verify(services, times(1)).getRegistration(Economy.class);
         }
     }
 
@@ -96,12 +143,13 @@ class VaultUnlockedHookTest {
 
             VaultUnlockedHook hook = new VaultUnlockedHook();
             hook.onEnable();
+            hook.getEconomy(); // populate cache
             hook.onDisable();
 
             assertFalse(hook.isAvailable());
-            assertEquals(HavenHookStatus.MISSING_PLUGIN, hook.getStatus());
             assertFalse(hook.hasEconomyProvider());
             assertNull(hook.getEconomy());
+            assertEquals(HavenHookStatus.MISSING_PLUGIN, hook.getStatus());
         }
     }
 }

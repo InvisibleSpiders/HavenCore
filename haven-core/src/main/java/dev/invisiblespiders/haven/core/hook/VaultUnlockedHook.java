@@ -10,6 +10,7 @@ public class VaultUnlockedHook implements HavenHook {
 
     private Economy economy;
     private boolean pluginPresent;
+    private boolean initialized;
 
     @Override
     public String getId() { return "vaultunlocked"; }
@@ -18,9 +19,9 @@ public class VaultUnlockedHook implements HavenHook {
     public void onEnable() {
         pluginPresent = Bukkit.getPluginManager().getPlugin("VaultUnlocked") != null
             || Bukkit.getPluginManager().getPlugin("Vault") != null;
-        RegisteredServiceProvider<Economy> rsp =
-            Bukkit.getServicesManager().getRegistration(Economy.class);
-        if (rsp != null) economy = rsp.getProvider();
+        initialized = true;
+        // Economy provider lookup is deferred to first use — economy plugins
+        // (e.g. ExcellentEconomy) register after HavenCore's onEnable.
     }
 
     @Override
@@ -41,11 +42,19 @@ public class VaultUnlockedHook implements HavenHook {
     public void onDisable() {
         economy = null;
         pluginPresent = false;
+        initialized = false;
     }
 
-    public Economy getEconomy() { return economy; }
+    public Economy getEconomy() {
+        if (economy == null && initialized) {
+            RegisteredServiceProvider<Economy> rsp =
+                Bukkit.getServicesManager().getRegistration(Economy.class);
+            if (rsp != null) economy = rsp.getProvider();
+        }
+        return economy;
+    }
 
     public boolean isPluginPresent() { return pluginPresent; }
 
-    public boolean hasEconomyProvider() { return economy != null; }
+    public boolean hasEconomyProvider() { return getEconomy() != null; }
 }
