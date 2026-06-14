@@ -43,7 +43,7 @@ public final class RewardAdminCommand {
         switch (action) {
             case "list", "check" -> list(sender, target, targetId);
             case "grant" -> grant(sender, targetId, args);
-            case "revoke" -> revoke(sender, args);
+            case "revoke" -> revoke(sender, targetId, args);
             default -> sendUsage(sender);
         }
         return true;
@@ -78,7 +78,7 @@ public final class RewardAdminCommand {
         sender.sendMessage(CoreText.deserialize("<green>Reward queued: #" + record.id()));
     }
 
-    private void revoke(CommandSender sender, String[] args) {
+    private void revoke(CommandSender sender, UUID targetId, String[] args) {
         if (args.length < 3) {
             sendUsage(sender);
             return;
@@ -88,6 +88,12 @@ public final class RewardAdminCommand {
             rewardId = Long.parseLong(args[2]);
         } catch (NumberFormatException e) {
             sender.sendMessage(CoreText.deserialize("<red>Reward id must be a number."));
+            return;
+        }
+        boolean belongsToTarget = rewards.pending(targetId).stream()
+                .anyMatch(reward -> reward.id() == rewardId);
+        if (!belongsToTarget) {
+            sender.sendMessage(CoreText.deserialize("<red>Reward does not belong to that player."));
             return;
         }
         rewards.revoke(rewardId, "admin").ifPresentOrElse(

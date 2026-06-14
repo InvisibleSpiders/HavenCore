@@ -1,6 +1,8 @@
 package dev.invisiblespiders.haven.core.command;
 
 import dev.invisiblespiders.haven.api.reward.HavenRewardService;
+import dev.invisiblespiders.haven.api.reward.RewardRecord;
+import dev.invisiblespiders.haven.api.reward.RewardStatus;
 import dev.invisiblespiders.haven.api.service.HavenHookRegistry;
 import dev.invisiblespiders.haven.core.config.ConfigManager;
 import dev.invisiblespiders.haven.core.dialog.RewardDialog;
@@ -14,12 +16,15 @@ import org.bukkit.plugin.Plugin;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -72,11 +77,39 @@ class RewardCommandTest {
         assertTrue(sentPlainMessages(sender).stream().anyMatch(message -> message.contains("No permission")));
     }
 
+    @Test
+    void havenRewardsRevokeRejectsRewardOutsideTargetMailbox() {
+        ConfigManager config = configWithMessages();
+        HavenRewardService rewards = mock(HavenRewardService.class);
+        Plugin plugin = mock(Plugin.class);
+        HavenHookRegistry hooks = mock(HavenHookRegistry.class);
+        CommandSender sender = mock(CommandSender.class);
+        when(sender.hasPermission("haven.admin.rewards")).thenReturn(true);
+        OfflinePlayer alice = offlinePlayer("Alice");
+        UUID aliceId = alice.getUniqueId();
+        when(rewards.pending(aliceId)).thenReturn(List.of(reward(9L, aliceId)));
+
+        HavenCommand command = new HavenCommand(plugin, config, hooks, null, null, null,
+                null, new RewardAdminCommand(config, rewards, name -> alice));
+
+        command.onCommand(sender, mock(Command.class), "haven",
+                new String[] {"rewards", "revoke", "Alice", "123"});
+
+        verify(rewards, never()).revoke(eq(123L), any());
+        assertTrue(sentPlainMessages(sender).stream()
+                .anyMatch(message -> message.contains("does not belong")));
+    }
+
     private static OfflinePlayer offlinePlayer(String name) {
         OfflinePlayer player = mock(OfflinePlayer.class);
         when(player.getName()).thenReturn(name);
         when(player.getUniqueId()).thenReturn(UUID.nameUUIDFromBytes(name.getBytes()));
         return player;
+    }
+
+    private static RewardRecord reward(long id, UUID playerId) {
+        return new RewardRecord(id, "test", "crate-key", playerId, "Crate Key", Map.of(),
+                RewardStatus.PENDING, Instant.now(), null, null);
     }
 
     private static ConfigManager configWithMessages() {

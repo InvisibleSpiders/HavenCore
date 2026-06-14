@@ -178,6 +178,9 @@ public final class UpgradeServiceImpl implements HavenUpgradeService {
         if (definition == null) {
             return failure("unknown-upgrade");
         }
+        if (!hasLevel(definition, level)) {
+            return failure("unknown-level");
+        }
         repository.recordPurchase(definition.providerId(), upgradeId, targetPlayerId, definition.scope().name(),
                 level, targetPlayerId, source);
         return UpgradePurchaseResult.success("Upgrade granted.");
@@ -210,6 +213,11 @@ public final class UpgradeServiceImpl implements HavenUpgradeService {
         return definition.levels().stream()
                 .filter(level -> level.level() == nextLevel)
                 .findFirst();
+    }
+
+    private boolean hasLevel(UpgradeDefinition definition, int requestedLevel) {
+        return definition.levels().stream()
+                .anyMatch(level -> level.level() == requestedLevel);
     }
 
     private boolean hasPermissionGate(UpgradeDefinition definition) {

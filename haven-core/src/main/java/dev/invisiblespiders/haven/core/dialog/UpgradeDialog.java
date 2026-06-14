@@ -117,21 +117,21 @@ public class UpgradeDialog {
                 if (!(audience instanceof Player p)) {
                     return;
                 }
-                openConfirm(p, request, definition, levelName);
+                openConfirm(p, request, definition, currentLevel, levelName);
             }, multiUseOpts()));
         }
         return builder.build();
     }
 
     private void openConfirm(Player player, UpgradeViewRequest request, UpgradeDefinition definition,
-                             String levelName) {
+                             int expectedCurrentLevel, String levelName) {
         ActionButton confirm = ActionButton.builder(
                         CoreText.config(config.getUpgrades(), "ui.buttons.confirm", "<green>Confirm Purchase"))
                 .action(DialogAction.customClick((view, audience) -> {
                     if (!(audience instanceof Player p)) {
                         return;
                     }
-                    UpgradePurchaseResult result = upgrades.purchase(p, definition.id(), definition.scope());
+                    UpgradePurchaseResult result = purchaseIfLevelUnchanged(p, definition, expectedCurrentLevel);
                     p.sendMessage(messageFor(result));
                     open(p, request);
                 }, oneUseOpts()))
@@ -155,6 +155,18 @@ public class UpgradeDialog {
                         .build())
                 .type(DialogType.multiAction(List.of(confirm), cancel, 1)));
         player.showDialog(dialog);
+    }
+
+    UpgradePurchaseResult purchaseIfLevelUnchanged(Player player, UpgradeDefinition definition,
+                                                   int expectedCurrentLevel) {
+        int currentLevel = upgrades.currentLevel(player.getUniqueId(), definition.id());
+        if (currentLevel != expectedCurrentLevel) {
+            return UpgradePurchaseResult.failure(
+                    "stale-upgrade-dialog",
+                    "Upgrade state changed. Please try again."
+            );
+        }
+        return upgrades.purchase(player, definition.id(), definition.scope());
     }
 
     private Component messageFor(UpgradePurchaseResult result) {

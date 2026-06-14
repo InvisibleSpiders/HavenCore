@@ -428,13 +428,30 @@ class UpgradeServiceImplTest {
         UpgradeServiceImpl service = serviceWith(TestUpgrades.playerTrack("test:slots"));
         UUID targetPlayerId = player.getUniqueId();
 
-        UpgradePurchaseResult grant = service.grant(targetPlayerId, "test:slots", 3, "admin");
+        UpgradePurchaseResult grant = service.grant(targetPlayerId, "test:slots", 1, "admin");
         UpgradePurchaseResult revoke = service.revoke(targetPlayerId, "test:slots", "admin");
 
         assertTrue(grant.succeeded());
         assertTrue(revoke.succeeded());
         assertEquals(0, repository.currentLevel(targetPlayerId, "test:slots"));
         assertEquals(1, repository.history(targetPlayerId).size());
+    }
+
+    @Test
+    void grantRejectsLevelsOutsideDefinition() {
+        UpgradeServiceImpl service = serviceWith(TestUpgrades.playerTrack("test:slots",
+                List.of(TestUpgrades.level(1), TestUpgrades.level(2))));
+        UUID targetPlayerId = player.getUniqueId();
+
+        UpgradePurchaseResult zero = service.grant(targetPlayerId, "test:slots", 0, "admin");
+        UpgradePurchaseResult aboveMax = service.grant(targetPlayerId, "test:slots", 3, "admin");
+
+        assertFalse(zero.succeeded());
+        assertEquals("unknown-level", zero.code());
+        assertFalse(aboveMax.succeeded());
+        assertEquals("unknown-level", aboveMax.code());
+        assertEquals(0, repository.currentLevel(targetPlayerId, "test:slots"));
+        assertTrue(repository.history(targetPlayerId).isEmpty());
     }
 
     @Test
