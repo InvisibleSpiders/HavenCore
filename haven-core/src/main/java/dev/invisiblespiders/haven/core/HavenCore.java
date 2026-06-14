@@ -23,6 +23,7 @@ import dev.invisiblespiders.haven.core.hook.VaultUnlockedHook;
 import dev.invisiblespiders.haven.core.repository.CodexRepository;
 import dev.invisiblespiders.haven.core.repository.PlayerRepository;
 import dev.invisiblespiders.haven.core.repository.VirtualInventoryRepository;
+import dev.invisiblespiders.haven.core.reward.RewardRuntimeBootstrap;
 import dev.invisiblespiders.haven.core.service.*;
 import org.bukkit.Material;
 import org.bukkit.plugin.ServicePriority;
@@ -117,6 +118,9 @@ public class HavenCore extends JavaPlugin {
         CodexServiceImpl codexService = new CodexServiceImpl(
             codexRepo, eventBus, asyncExecutor, configManager.getCodex(), getLogger()
         );
+
+        // Rewards
+        RewardRuntimeBootstrap.register(this, dataSource.getDataSource(), configManager);
 
         // GUI listener
         getServer().getPluginManager().registerEvents(new GuiListener(), this);
