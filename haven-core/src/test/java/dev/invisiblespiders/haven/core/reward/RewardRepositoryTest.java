@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -79,6 +80,19 @@ class RewardRepositoryTest {
     }
 
     @Test
+    void pendingExcludesExpiredRewardBeforeExpireRuns() {
+        UUID playerId = UUID.randomUUID();
+        Instant now = Instant.parse("2026-06-14T12:00:00Z");
+        RewardRecord expiredPending = repository.enqueue(playerId, "havenvault", "server-bank-item",
+                "Expired Pending Bundle", Map.of("material", "DIRT"), now, "test");
+        RewardRecord available = repository.enqueue(playerId, "havenvault", "server-bank-item",
+                "Available Bundle", Map.of("material", "DIAMOND"), now.plusSeconds(60), "test");
+
+        assertEquals(List.of(available), repository.pending(playerId, now));
+        assertEquals(RewardStatus.PENDING, repository.find(expiredPending.id()).orElseThrow().status());
+    }
+
+    @Test
     void noExpiryRewardRemainsPending() {
         UUID playerId = UUID.randomUUID();
         Instant now = Instant.parse("2026-06-14T12:00:00Z");
@@ -88,6 +102,42 @@ class RewardRepositoryTest {
         assertEquals(List.of(reward), repository.pending(playerId, now));
         assertEquals(0, repository.expire(now));
         assertEquals(RewardStatus.PENDING, repository.find(reward.id()).orElseThrow().status());
+    }
+
+    @Test
+    void claimPendingRewardReturnsClaimedRecordWithClaimedAt() {
+        UUID playerId = UUID.randomUUID();
+        Instant now = Instant.parse("2026-06-14T12:00:00Z");
+        RewardRecord reward = repository.enqueue(playerId, "havenvault", "server-bank-item",
+                "Item Bundle", Map.of("material", "DIAMOND"), now.plusSeconds(60), "test");
+
+        Optional<RewardRecord> claimed = repository.claim(reward.id(), now);
+
+        assertTrue(claimed.isPresent());
+        assertEquals(RewardStatus.CLAIMED, claimed.orElseThrow().status());
+        assertEquals(now, claimed.orElseThrow().claimedAt());
+        assertEquals(RewardStatus.CLAIMED, repository.find(reward.id()).orElseThrow().status());
+    }
+
+    @Test
+    void claimMissingRewardReturnsEmpty() {
+        assertTrue(repository.claim(999L, Instant.parse("2026-06-14T12:00:00Z")).isEmpty());
+    }
+
+    @Test
+    void claimNonPendingRewardReturnsEmptyAndDoesNotChangeReward() {
+        UUID playerId = UUID.randomUUID();
+        Instant firstClaimedAt = Instant.parse("2026-06-14T12:00:00Z");
+        Instant secondClaimedAt = firstClaimedAt.plusSeconds(60);
+        RewardRecord reward = repository.enqueue(playerId, "havenvault", "server-bank-item",
+                "Item Bundle", Map.of("material", "DIAMOND"), secondClaimedAt.plusSeconds(60), "test");
+
+        repository.claim(reward.id(), firstClaimedAt);
+
+        assertTrue(repository.claim(reward.id(), secondClaimedAt).isEmpty());
+        RewardRecord unchanged = repository.find(reward.id()).orElseThrow();
+        assertEquals(RewardStatus.CLAIMED, unchanged.status());
+        assertEquals(firstClaimedAt, unchanged.claimedAt());
     }
 
     @Test
@@ -105,6 +155,29 @@ class RewardRepositoryTest {
         assertTrue(repository.revoke(claimed.id(), "admin").isEmpty());
         assertEquals(RewardStatus.CLAIMED, repository.find(claimed.id()).orElseThrow().status());
         assertTrue(repository.revoke(999L, "admin").isEmpty());
+    }
+
+    @Test
+    void expireCountsOnlyPendingRewardsAtOrBeforeNow() {
+        UUID playerId = UUID.randomUUID();
+        Instant now = Instant.parse("2026-06-14T12:00:00Z");
+        RewardRecord expiresNow = repository.enqueue(playerId, "havenvault", "server-bank-item",
+                "Expires Now", Map.of("material", "DIRT"), now, "test");
+        RewardRecord expiresBefore = repository.enqueue(playerId, "havenvault", "server-bank-item",
+                "Expires Before", Map.of("material", "COBBLESTONE"), now.minusMillis(1), "test");
+        RewardRecord expiresAfter = repository.enqueue(playerId, "havenvault", "server-bank-item",
+                "Expires After", Map.of("material", "DIAMOND"), now.plusMillis(1), "test");
+        RewardRecord alreadyNonPending = repository.enqueue(playerId, "havenvault", "server-bank-item",
+                "Already Claimed", Map.of("material", "EMERALD"), now.minusMillis(1), "test");
+        repository.claim(alreadyNonPending.id(), now.minusSeconds(1));
+
+        assertEquals(2, repository.expire(now));
+
+        assertEquals(RewardStatus.EXPIRED, repository.find(expiresNow.id()).orElseThrow().status());
+        assertEquals(RewardStatus.EXPIRED, repository.find(expiresBefore.id()).orElseThrow().status());
+        assertEquals(RewardStatus.PENDING, repository.find(expiresAfter.id()).orElseThrow().status());
+        assertEquals(RewardStatus.CLAIMED, repository.find(alreadyNonPending.id()).orElseThrow().status());
+        assertEquals(0, repository.expire(now));
     }
 
     @Test
