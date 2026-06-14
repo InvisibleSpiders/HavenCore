@@ -14,7 +14,7 @@ public interface UpgradeProvider {
 
     List<UpgradeDefinition> definitions();
 
-    Optional<UpgradeEffect> effect(String type);
+    Optional<UpgradeEffect> effect(String type, Map<String, String> values);
 
     Optional<UpgradeRequirement> requirement(String type, Map<String, String> values);
 }

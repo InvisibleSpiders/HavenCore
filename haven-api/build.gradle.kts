@@ -7,6 +7,7 @@ dependencies {
     // Paper API on compile classpath — implementors provide at runtime
     compileOnly("io.papermc.paper:paper-api:26.1.2.build.69-stable")
 
+    testImplementation("io.papermc.paper:paper-api:26.1.2.build.69-stable")
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.11.3")
 }
