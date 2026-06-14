@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
@@ -62,6 +62,29 @@ class RewardLoginListenerTest {
         String plain = PlainTextComponentSerializer.plainText().serialize(message);
         assertTrue(plain.contains("2"), "Expected reward count in: " + plain);
         assertTrue(containsRunCommand(message, "/rewards"));
+    }
+
+    @Test
+    void configuredMessagePreservesConfiguredClickEvent() {
+        Player player = mock(Player.class);
+        UUID playerId = UUID.randomUUID();
+        when(player.getUniqueId()).thenReturn(playerId);
+        HavenRewardService rewards = mock(HavenRewardService.class);
+        when(rewards.pending(playerId)).thenReturn(List.of(reward(1L, playerId)));
+        ConfigManager config = mock(ConfigManager.class);
+        when(config.getMessage("rewards.login-reminder"))
+                .thenReturn("<click:run_command:'/custom-rewards'>Custom {count}</click>");
+        RewardLoginListener listener = new RewardLoginListener(rewards, config);
+
+        listener.onJoin(new PlayerJoinEvent(player, (String) null));
+
+        ArgumentCaptor<Component> messageCaptor = ArgumentCaptor.forClass(Component.class);
+        verify(player).sendMessage(messageCaptor.capture());
+        Component message = messageCaptor.getValue();
+        String plain = PlainTextComponentSerializer.plainText().serialize(message);
+        assertTrue(plain.contains("1"), "Expected reward count in: " + plain);
+        assertTrue(containsRunCommand(message, "/custom-rewards"));
+        assertFalse(containsRunCommand(message, "/rewards"));
     }
 
     private static RewardRecord reward(long id, UUID playerId) {

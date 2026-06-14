@@ -3,7 +3,6 @@ package dev.invisiblespiders.haven.core.reward;
 import dev.invisiblespiders.haven.api.reward.HavenRewardService;
 import dev.invisiblespiders.haven.core.config.ConfigManager;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -36,8 +35,7 @@ public final class RewardLoginListener implements Listener {
             return;
         }
         String message = configuredMessage().replace("{count}", Integer.toString(count));
-        Component component = MINI_MESSAGE.deserialize(message)
-                .clickEvent(ClickEvent.runCommand("/rewards"));
+        Component component = MINI_MESSAGE.deserialize(message);
         player.sendMessage(component);
     }
 

@@ -55,7 +55,7 @@ public final class RewardServiceImpl implements HavenRewardService {
     }
 
     @Override
-    public RewardClaimResult claim(Player player, long rewardId) {
+    public synchronized RewardClaimResult claim(Player player, long rewardId) {
         Objects.requireNonNull(player, "player");
         Instant now = Instant.now();
         Optional<RewardRecord> found = repository.find(rewardId);
@@ -65,6 +65,9 @@ public final class RewardServiceImpl implements HavenRewardService {
 
         RewardRecord reward = found.get();
         if (reward.status() != RewardStatus.PENDING) {
+            return RewardClaimResult.failure("reward-unavailable", "Reward is no longer available.");
+        }
+        if (!reward.playerId().equals(player.getUniqueId())) {
             return RewardClaimResult.failure("reward-unavailable", "Reward is no longer available.");
         }
         if (isExpired(reward, now)) {
@@ -94,12 +97,12 @@ public final class RewardServiceImpl implements HavenRewardService {
     }
 
     @Override
-    public int expireRewards(Instant now) {
+    public synchronized int expireRewards(Instant now) {
         return repository.expire(now);
     }
 
     @Override
-    public Optional<RewardRecord> revoke(long rewardId, String source) {
+    public synchronized Optional<RewardRecord> revoke(long rewardId, String source) {
         return repository.revoke(rewardId, source);
     }
 
