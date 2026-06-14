@@ -1,10 +1,16 @@
 package dev.invisiblespiders.haven.core;
 
 import com.zaxxer.hikari.HikariConfig;
+import dev.invisiblespiders.haven.api.reward.HavenRewardService;
 import dev.invisiblespiders.haven.api.service.*;
 import dev.invisiblespiders.haven.api.service.HavenSuiteRegistry;
+import dev.invisiblespiders.haven.api.upgrade.HavenUpgradeService;
 import dev.invisiblespiders.haven.core.async.HavenAsyncExecutors;
 import dev.invisiblespiders.haven.core.command.HavenCommand;
+import dev.invisiblespiders.haven.core.command.RewardAdminCommand;
+import dev.invisiblespiders.haven.core.command.RewardsCommand;
+import dev.invisiblespiders.haven.core.command.UpgradeAdminCommand;
+import dev.invisiblespiders.haven.core.command.UpgradesCommand;
 import dev.invisiblespiders.haven.core.suite.CoreSuiteEntry;
 import dev.invisiblespiders.haven.core.suite.HavenSuiteRegistryImpl;
 import dev.invisiblespiders.haven.core.config.ConfigManager;
@@ -20,10 +26,14 @@ import dev.invisiblespiders.haven.core.gui.GuiListener;
 import dev.invisiblespiders.haven.core.hook.ExcellentEconomyHook;
 import dev.invisiblespiders.haven.core.hook.PlaceholderAPIHook;
 import dev.invisiblespiders.haven.core.hook.VaultUnlockedHook;
+import dev.invisiblespiders.haven.core.dialog.RewardDialog;
+import dev.invisiblespiders.haven.core.dialog.UpgradeDialog;
 import dev.invisiblespiders.haven.core.repository.CodexRepository;
 import dev.invisiblespiders.haven.core.repository.PlayerRepository;
 import dev.invisiblespiders.haven.core.repository.VirtualInventoryRepository;
 import dev.invisiblespiders.haven.core.reward.RewardRuntimeBootstrap;
+import dev.invisiblespiders.haven.core.upgrade.UpgradeRepository;
+import dev.invisiblespiders.haven.core.upgrade.UpgradeServiceImpl;
 import dev.invisiblespiders.haven.core.service.*;
 import org.bukkit.Material;
 import org.bukkit.plugin.ServicePriority;
@@ -119,8 +129,17 @@ public class HavenCore extends JavaPlugin {
             codexRepo, eventBus, asyncExecutor, configManager.getCodex(), getLogger()
         );
 
+        // Upgrades
+        UpgradeRepository upgradeRepository = new UpgradeRepository(dataSource.getDataSource());
+        UpgradeServiceImpl upgradeService = new UpgradeServiceImpl(upgradeRepository);
+        UpgradeDialog upgradeDialog = new UpgradeDialog(configManager, upgradeService);
+        upgradeService.setDialog(upgradeDialog);
+
         // Rewards
-        RewardRuntimeBootstrap.register(this, dataSource.getDataSource(), configManager);
+        HavenRewardService rewardService = RewardRuntimeBootstrap.register(
+            this, dataSource.getDataSource(), configManager
+        );
+        RewardDialog rewardDialog = new RewardDialog(configManager, rewardService);
 
         // GUI listener
         getServer().getPluginManager().registerEvents(new GuiListener(), this);
@@ -145,15 +164,31 @@ public class HavenCore extends JavaPlugin {
         sm.register(HavenCodexService.class,      codexService,   this, ServicePriority.Normal);
         sm.register(HavenDataSource.class,        dataSource,     this, ServicePriority.Normal);
         sm.register(HavenSuiteRegistry.class,     suiteRegistry,  this, ServicePriority.Normal);
+        sm.register(HavenUpgradeService.class,    upgradeService, this, ServicePriority.Normal);
 
         // Commands
+        UpgradeAdminCommand upgradeAdmin = new UpgradeAdminCommand(
+            configManager, upgradeService, name -> getServer().getOfflinePlayer(name)
+        );
+        RewardAdminCommand rewardAdmin = new RewardAdminCommand(
+            configManager, rewardService, name -> getServer().getOfflinePlayer(name)
+        );
         HavenCommand cmd = new HavenCommand(
-            this, configManager, hookRegistry, asyncExecutor, opToggleService, suiteRegistry
+            this, configManager, hookRegistry, asyncExecutor, opToggleService, suiteRegistry,
+            upgradeAdmin, rewardAdmin
         );
         var havenCmd = getCommand("haven");
         if (havenCmd != null) {
             havenCmd.setExecutor(cmd);
             havenCmd.setTabCompleter(cmd);
+        }
+        var upgradesCmd = getCommand("upgrades");
+        if (upgradesCmd != null) {
+            upgradesCmd.setExecutor(new UpgradesCommand(configManager, upgradeService));
+        }
+        var rewardsCmd = getCommand("rewards");
+        if (rewardsCmd != null) {
+            rewardsCmd.setExecutor(new RewardsCommand(configManager, rewardDialog));
         }
 
         getLogger().info("HavenCore enabled. " + hookRegistry.getAll().size() + " hook(s) registered.");

@@ -14,7 +14,9 @@ import dev.invisiblespiders.haven.api.upgrade.UpgradePurchaseResult;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeRequirement;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeRequirementResult;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeScope;
+import dev.invisiblespiders.haven.api.upgrade.UpgradeViewRequest;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeVisibility;
+import dev.invisiblespiders.haven.core.dialog.UpgradeDialog;
 import dev.invisiblespiders.haven.core.db.SqlMigrator;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -352,6 +354,18 @@ class UpgradeServiceImplTest {
         repository.recordPurchase("test-provider", "test:slots", playerId, "PLAYER", 4, playerId, "fixture");
 
         assertEquals(4, service.currentLevel(playerId, "test:slots"));
+    }
+
+    @Test
+    void openDialogDelegatesToConfiguredDialog() {
+        UpgradeDialog dialog = mock(UpgradeDialog.class);
+        UpgradeServiceImpl service = new UpgradeServiceImpl(repository);
+        service.setDialog(dialog);
+        UpgradeViewRequest request = UpgradeViewRequest.all();
+
+        service.openDialog(player, request);
+
+        verify(dialog).open(player, request);
     }
 
     @Test

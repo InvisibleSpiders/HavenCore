@@ -7,6 +7,7 @@ import dev.invisiblespiders.haven.core.config.ConfigManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.junit.jupiter.api.Test;
@@ -51,7 +52,7 @@ class RewardLoginListenerTest {
                 reward(2L, playerId)
         ));
         ConfigManager config = mock(ConfigManager.class);
-        when(config.getMessage("rewards.login-reminder")).thenReturn("");
+        when(config.getRewards()).thenReturn(new YamlConfiguration());
         RewardLoginListener listener = new RewardLoginListener(rewards, config);
 
         listener.onJoin(new PlayerJoinEvent(player, (String) null));
@@ -72,8 +73,9 @@ class RewardLoginListenerTest {
         HavenRewardService rewards = mock(HavenRewardService.class);
         when(rewards.pending(playerId)).thenReturn(List.of(reward(1L, playerId)));
         ConfigManager config = mock(ConfigManager.class);
-        when(config.getMessage("rewards.login-reminder"))
-                .thenReturn("<click:run_command:'/custom-rewards'>Custom {count}</click>");
+        YamlConfiguration rewardsConfig = new YamlConfiguration();
+        rewardsConfig.set("login-reminder.message", "<click:run_command:'/custom-rewards'>Custom {count}</click>");
+        when(config.getRewards()).thenReturn(rewardsConfig);
         RewardLoginListener listener = new RewardLoginListener(rewards, config);
 
         listener.onJoin(new PlayerJoinEvent(player, (String) null));
@@ -85,6 +87,24 @@ class RewardLoginListenerTest {
         assertTrue(plain.contains("1"), "Expected reward count in: " + plain);
         assertTrue(containsRunCommand(message, "/custom-rewards"));
         assertFalse(containsRunCommand(message, "/rewards"));
+    }
+
+    @Test
+    void disabledLoginReminderSendsNoMessage() {
+        Player player = mock(Player.class);
+        UUID playerId = UUID.randomUUID();
+        when(player.getUniqueId()).thenReturn(playerId);
+        HavenRewardService rewards = mock(HavenRewardService.class);
+        when(rewards.pending(playerId)).thenReturn(List.of(reward(1L, playerId)));
+        ConfigManager config = mock(ConfigManager.class);
+        YamlConfiguration rewardsConfig = new YamlConfiguration();
+        rewardsConfig.set("login-reminder.enabled", false);
+        when(config.getRewards()).thenReturn(rewardsConfig);
+        RewardLoginListener listener = new RewardLoginListener(rewards, config);
+
+        listener.onJoin(new PlayerJoinEvent(player, (String) null));
+
+        verify(player, never()).sendMessage(any(Component.class));
     }
 
     private static RewardRecord reward(long id, UUID playerId) {

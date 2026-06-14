@@ -1,0 +1,9 @@
+ui:
+  title: "<gold>Rewards"
+  empty: "<gray>No rewards to claim."
+  claim: "<green>Claim"
+login-reminder:
+  enabled: true
+  message: "<gold>You have <yellow>{count}</yellow> unclaimed reward(s). <green><click:run_command:'/rewards'>Click to claim.</click></green>"
+expiry:
+  cleanup-on-startup: true

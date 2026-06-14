@@ -6,6 +6,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicePriority;
 
 import javax.sql.DataSource;
+import java.time.Instant;
 import java.util.Objects;
 
 public final class RewardRuntimeBootstrap {
@@ -19,10 +20,25 @@ public final class RewardRuntimeBootstrap {
 
         RewardRepository repository = new RewardRepository(dataSource);
         RewardServiceImpl rewardService = new RewardServiceImpl(repository);
+        if (cleanupOnStartup(config)) {
+            rewardService.expireRewards(Instant.now());
+        }
         plugin.getServer().getServicesManager().register(
                 HavenRewardService.class, rewardService, plugin, ServicePriority.Normal);
         plugin.getServer().getPluginManager().registerEvents(
                 new RewardLoginListener(rewardService, config), plugin);
         return rewardService;
+    }
+
+    private static boolean cleanupOnStartup(ConfigManager config) {
+        if (config == null) {
+            return true;
+        }
+        try {
+            return config.getRewards() == null
+                    || config.getRewards().getBoolean("expiry.cleanup-on-startup", true);
+        } catch (RuntimeException ignored) {
+            return true;
+        }
     }
 }

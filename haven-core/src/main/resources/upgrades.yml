@@ -1,0 +1,10 @@
+ui:
+  title: "<gold>Upgrades"
+  confirm-title: "<gold>Confirm Purchase"
+  show-maxed: true
+  show-locked: true
+  buttons:
+    back: "<gray>Back"
+    confirm: "<green>Confirm Purchase"
+    cancel: "<red>Cancel"
+    maxed: "<gray>Maxed"

@@ -12,6 +12,7 @@ import dev.invisiblespiders.haven.api.upgrade.UpgradeRequirementResult;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeScope;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeViewRequest;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeVisibility;
+import dev.invisiblespiders.haven.core.dialog.UpgradeDialog;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -28,9 +29,14 @@ public final class UpgradeServiceImpl implements HavenUpgradeService {
     private final UpgradeRepository repository;
     private final Map<String, UpgradeProvider> providers = new LinkedHashMap<>();
     private final Map<String, UpgradeDefinition> definitions = new LinkedHashMap<>();
+    private UpgradeDialog dialog;
 
     public UpgradeServiceImpl(UpgradeRepository repository) {
         this.repository = Objects.requireNonNull(repository, "repository");
+    }
+
+    public void setDialog(UpgradeDialog dialog) {
+        this.dialog = Objects.requireNonNull(dialog, "dialog");
     }
 
     @Override
@@ -192,7 +198,12 @@ public final class UpgradeServiceImpl implements HavenUpgradeService {
 
     @Override
     public void openDialog(Player player, UpgradeViewRequest request) {
-        // Task 6 owns the upgrade UI.
+        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(request, "request");
+        if (dialog == null) {
+            return;
+        }
+        dialog.open(player, request);
     }
 
     private Optional<UpgradeLevel> findLevel(UpgradeDefinition definition, int nextLevel) {

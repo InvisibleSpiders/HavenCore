@@ -4,6 +4,7 @@ import dev.invisiblespiders.haven.api.reward.HavenRewardService;
 import dev.invisiblespiders.haven.core.config.ConfigManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -14,7 +15,6 @@ import java.util.Objects;
 public final class RewardLoginListener implements Listener {
 
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
-    private static final String MESSAGE_KEY = "rewards.login-reminder";
     private static final String FALLBACK_MESSAGE = """
             <gold>You have <yellow>{count}</yellow> unclaimed reward(s). \
             <green><click:run_command:'/rewards'>Click to claim.</click></green>""";
@@ -29,6 +29,9 @@ public final class RewardLoginListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
+        if (!reminderEnabled()) {
+            return;
+        }
         Player player = event.getPlayer();
         int count = rewards.pending(player.getUniqueId()).size();
         if (count == 0) {
@@ -39,12 +42,27 @@ public final class RewardLoginListener implements Listener {
         player.sendMessage(component);
     }
 
+    private boolean reminderEnabled() {
+        if (config == null) {
+            return true;
+        }
+        try {
+            FileConfiguration rewardsConfig = config.getRewards();
+            return rewardsConfig == null || rewardsConfig.getBoolean("login-reminder.enabled", true);
+        } catch (RuntimeException ignored) {
+            return true;
+        }
+    }
+
     private String configuredMessage() {
         if (config == null) {
             return FALLBACK_MESSAGE;
         }
         try {
-            String message = config.getMessage(MESSAGE_KEY);
+            FileConfiguration rewardsConfig = config.getRewards();
+            String message = rewardsConfig == null
+                    ? ""
+                    : rewardsConfig.getString("login-reminder.message", "");
             if (message != null && !message.isBlank()) {
                 return message;
             }
