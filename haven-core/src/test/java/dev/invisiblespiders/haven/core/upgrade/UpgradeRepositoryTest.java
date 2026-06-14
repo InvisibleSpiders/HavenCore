@@ -7,10 +7,19 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import javax.sql.DataSource;
+import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Proxy;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class UpgradeRepositoryTest {
 
@@ -93,5 +102,100 @@ class UpgradeRepositoryTest {
         assertEquals(1, history.get(0).purchasedLevel());
         assertEquals(3, history.get(1).purchasedLevel());
         assertEquals(2, history.get(2).purchasedLevel());
+    }
+
+    @Test
+    void recordPurchaseRestoresOriginalAutoCommit() throws Exception {
+        UUID playerId = UUID.randomUUID();
+        try (SingleConnectionDataSource singleConnectionDataSource = new SingleConnectionDataSource()) {
+            SqlMigrator.migrate(singleConnectionDataSource, "haven", "db/migrations/haven",
+                    getClass().getClassLoader());
+            singleConnectionDataSource.setAutoCommit(false);
+            UpgradeRepository singleConnectionRepository = new UpgradeRepository(singleConnectionDataSource);
+
+            singleConnectionRepository.recordPurchase("havenvault", "havenvault:bank-cap", playerId,
+                    "PLAYER", 1, playerId, "auto-commit-test");
+
+            assertFalse(singleConnectionDataSource.getAutoCommit());
+        }
+    }
+
+    private static final class SingleConnectionDataSource implements DataSource, AutoCloseable {
+        private final Connection connection;
+
+        private SingleConnectionDataSource() throws SQLException {
+            this.connection = DriverManager.getConnection("jdbc:sqlite::memory:");
+        }
+
+        private void setAutoCommit(boolean autoCommit) throws SQLException {
+            connection.setAutoCommit(autoCommit);
+        }
+
+        private boolean getAutoCommit() throws SQLException {
+            return connection.getAutoCommit();
+        }
+
+        @Override
+        public Connection getConnection() {
+            return (Connection) Proxy.newProxyInstance(
+                    Connection.class.getClassLoader(),
+                    new Class<?>[]{Connection.class},
+                    (proxy, method, args) -> {
+                        if ("close".equals(method.getName())) {
+                            return null;
+                        }
+                        try {
+                            return method.invoke(connection, args);
+                        } catch (InvocationTargetException e) {
+                            throw e.getCause();
+                        }
+                    });
+        }
+
+        @Override
+        public Connection getConnection(String username, String password) {
+            return getConnection();
+        }
+
+        @Override
+        public PrintWriter getLogWriter() {
+            return null;
+        }
+
+        @Override
+        public void setLogWriter(PrintWriter out) {
+        }
+
+        @Override
+        public void setLoginTimeout(int seconds) {
+        }
+
+        @Override
+        public int getLoginTimeout() {
+            return 0;
+        }
+
+        @Override
+        public Logger getParentLogger() {
+            return Logger.getGlobal();
+        }
+
+        @Override
+        public <T> T unwrap(Class<T> iface) throws SQLException {
+            if (iface.isInstance(this)) {
+                return iface.cast(this);
+            }
+            throw new SQLException("Not a wrapper for " + iface);
+        }
+
+        @Override
+        public boolean isWrapperFor(Class<?> iface) {
+            return iface.isInstance(this);
+        }
+
+        @Override
+        public void close() throws SQLException {
+            connection.close();
+        }
     }
 }

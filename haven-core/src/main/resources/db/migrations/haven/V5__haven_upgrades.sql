@@ -21,8 +21,8 @@ CREATE TABLE IF NOT EXISTS haven_upgrade_purchases (
     created_at BIGINT NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_haven_upgrade_purchases_beneficiary
+CREATE INDEX idx_haven_upgrade_purchases_beneficiary
     ON haven_upgrade_purchases (beneficiary_uuid);
 
-CREATE INDEX IF NOT EXISTS idx_haven_upgrade_purchases_upgrade
+CREATE INDEX idx_haven_upgrade_purchases_upgrade
     ON haven_upgrade_purchases (upgrade_id);

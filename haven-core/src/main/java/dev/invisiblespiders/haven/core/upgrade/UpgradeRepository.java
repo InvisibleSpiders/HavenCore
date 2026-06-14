@@ -53,6 +53,7 @@ public final class UpgradeRepository {
         Objects.requireNonNull(source, "source");
 
         try (Connection connection = dataSource.getConnection()) {
+            boolean autoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
             try {
                 long now = System.currentTimeMillis();
@@ -65,7 +66,7 @@ public final class UpgradeRepository {
                 throw new IllegalStateException(
                         "Failed to record upgrade purchase for " + beneficiaryId + " and " + upgradeId, e);
             } finally {
-                connection.setAutoCommit(true);
+                connection.setAutoCommit(autoCommit);
             }
         } catch (SQLException e) {
             throw new IllegalStateException(
