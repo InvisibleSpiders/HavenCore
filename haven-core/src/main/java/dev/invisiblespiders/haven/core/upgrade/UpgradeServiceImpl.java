@@ -45,6 +45,10 @@ public final class UpgradeServiceImpl implements HavenUpgradeService {
                 Objects.requireNonNull(provider.definitions(), "provider.definitions"));
         for (UpgradeDefinition definition : providerDefinitions) {
             String upgradeId = Objects.requireNonNull(definition.id(), "definition.id");
+            if (!definition.providerId().equals(providerId)) {
+                throw new IllegalArgumentException("Upgrade definition " + upgradeId
+                        + " belongs to provider " + definition.providerId() + " not " + providerId);
+            }
             if (definitions.containsKey(upgradeId)) {
                 throw new IllegalArgumentException("Duplicate upgrade id: " + upgradeId);
             }
@@ -252,7 +256,11 @@ public final class UpgradeServiceImpl implements HavenUpgradeService {
         List<UpgradeEffect> reversed = new ArrayList<>(effects);
         Collections.reverse(reversed);
         for (UpgradeEffect effect : reversed) {
-            effect.rollback(context);
+            try {
+                effect.rollback(context);
+            } catch (RuntimeException ignored) {
+                // Keep cleanup best-effort so original purchase failure codes are preserved.
+            }
         }
     }
 
@@ -260,7 +268,11 @@ public final class UpgradeServiceImpl implements HavenUpgradeService {
         List<UpgradeRequirement> reversed = new ArrayList<>(requirements);
         Collections.reverse(reversed);
         for (UpgradeRequirement requirement : reversed) {
-            requirement.refund(context);
+            try {
+                requirement.refund(context);
+            } catch (RuntimeException ignored) {
+                // Keep cleanup best-effort so original purchase failure codes are preserved.
+            }
         }
     }
 

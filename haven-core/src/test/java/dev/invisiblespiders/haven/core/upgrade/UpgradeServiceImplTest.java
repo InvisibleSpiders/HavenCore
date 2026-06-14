@@ -125,6 +125,20 @@ class UpgradeServiceImplTest {
     }
 
     @Test
+    void mismatchedDefinitionProviderIdIsRejectedWithoutStaleDefinitions() {
+        UpgradeServiceImpl service = new UpgradeServiceImpl(repository);
+        UpgradeDefinition mismatched = TestUpgrades.definition(
+                "test:slots", "other-provider", UpgradeVisibility.VISIBLE);
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.registerProvider(TestUpgrades.provider("test-provider", mismatched)));
+
+        assertTrue(service.providers().isEmpty());
+        assertTrue(service.definitions().isEmpty());
+        assertTrue(service.findDefinition("test:slots").isEmpty());
+    }
+
+    @Test
     void unknownUpgradeReturnsUnknownUpgrade() {
         UpgradeServiceImpl service = serviceWith(TestUpgrades.playerTrack("test:slots"));
 
@@ -237,6 +251,31 @@ class UpgradeServiceImplTest {
     }
 
     @Test
+    void failedRequirementConsumeContinuesRefundsWhenOneRefundThrowsAndPreservesOriginalCode() {
+        List<String> operations = new ArrayList<>();
+        CleanupRequirement first = new CleanupRequirement("first", operations, true, false);
+        CleanupRequirement second = new CleanupRequirement("second", operations, true, false);
+        CleanupRequirement third = new CleanupRequirement("third", operations, true, true);
+        CleanupRequirement fourth = new CleanupRequirement("fourth", operations, false, false);
+        UpgradeServiceImpl service = serviceWith(TestUpgrades.playerTrack("test:slots",
+                List.of(first, second, third, fourth), List.of(new TestEffect(true, true))));
+
+        UpgradePurchaseResult result = service.purchase(player, "test:slots");
+
+        assertFalse(result.succeeded());
+        assertEquals("requirement-consume-failed", result.code());
+        assertEquals(List.of(
+                "consume:first",
+                "consume:second",
+                "consume:third",
+                "consume:fourth",
+                "refund:third",
+                "refund:second",
+                "refund:first"
+        ), operations);
+    }
+
+    @Test
     void failedEffectValidationReturnsEffectInvalidAndDoesNotConsumeRequirements() {
         TestRequirement requirement = new TestRequirement(true, true);
         TestEffect effect = new TestEffect(false, true);
@@ -264,6 +303,34 @@ class UpgradeServiceImplTest {
         assertFalse(result.succeeded());
         assertEquals(List.of("apply:first", "apply:second", "apply:third", "rollback:second", "rollback:first"),
                 operations);
+    }
+
+    @Test
+    void failedEffectApplyContinuesRollbackAndRefundWhenOneRollbackThrowsAndPreservesOriginalCode() {
+        List<String> operations = new ArrayList<>();
+        CleanupRequirement requirement = new CleanupRequirement("requirement", operations, true, false);
+        CleanupEffect first = new CleanupEffect("first", operations, true, false);
+        CleanupEffect second = new CleanupEffect("second", operations, true, true);
+        CleanupEffect third = new CleanupEffect("third", operations, true, false);
+        CleanupEffect fourth = new CleanupEffect("fourth", operations, false, false);
+        UpgradeServiceImpl service = serviceWith(TestUpgrades.playerTrack("test:slots",
+                List.of(requirement), List.of(first, second, third, fourth)));
+
+        UpgradePurchaseResult result = service.purchase(player, "test:slots");
+
+        assertFalse(result.succeeded());
+        assertEquals("effect-failed", result.code());
+        assertEquals(List.of(
+                "consume:requirement",
+                "apply:first",
+                "apply:second",
+                "apply:third",
+                "apply:fourth",
+                "rollback:third",
+                "rollback:second",
+                "rollback:first",
+                "refund:requirement"
+        ), operations);
     }
 
     @Test
@@ -620,6 +687,46 @@ class UpgradeServiceImplTest {
         }
     }
 
+    private static final class CleanupRequirement implements UpgradeRequirement {
+        private final String name;
+        private final List<String> operations;
+        private final boolean consumes;
+        private final boolean refundThrows;
+
+        private CleanupRequirement(String name, List<String> operations, boolean consumes, boolean refundThrows) {
+            this.name = name;
+            this.operations = operations;
+            this.consumes = consumes;
+            this.refundThrows = refundThrows;
+        }
+
+        @Override
+        public String type() {
+            return "cleanup-requirement";
+        }
+
+        @Override
+        public UpgradeRequirementResult validate(UpgradeContext context) {
+            return UpgradeRequirementResult.success();
+        }
+
+        @Override
+        public void consume(UpgradeContext context) {
+            operations.add("consume:" + name);
+            if (!consumes) {
+                throw new IllegalStateException("consume failed");
+            }
+        }
+
+        @Override
+        public void refund(UpgradeContext context) {
+            operations.add("refund:" + name);
+            if (refundThrows) {
+                throw new IllegalStateException("refund failed");
+            }
+        }
+    }
+
     private static final class TestEffect implements UpgradeEffect {
         private final boolean validates;
         private final boolean applies;
@@ -692,6 +799,41 @@ class UpgradeServiceImplTest {
         @Override
         public void rollback(UpgradeContext context) {
             operations.add("rollback:" + name);
+        }
+    }
+
+    private static final class CleanupEffect implements UpgradeEffect {
+        private final String name;
+        private final List<String> operations;
+        private final boolean applies;
+        private final boolean rollbackThrows;
+
+        private CleanupEffect(String name, List<String> operations, boolean applies, boolean rollbackThrows) {
+            this.name = name;
+            this.operations = operations;
+            this.applies = applies;
+            this.rollbackThrows = rollbackThrows;
+        }
+
+        @Override
+        public String type() {
+            return "cleanup-effect";
+        }
+
+        @Override
+        public void apply(UpgradeContext context) {
+            operations.add("apply:" + name);
+            if (!applies) {
+                throw new IllegalStateException("apply failed");
+            }
+        }
+
+        @Override
+        public void rollback(UpgradeContext context) {
+            operations.add("rollback:" + name);
+            if (rollbackThrows) {
+                throw new IllegalStateException("rollback failed");
+            }
         }
     }
 
