@@ -141,6 +141,19 @@ class RewardRepositoryTest {
     }
 
     @Test
+    void claimExpiredPendingRewardReturnsEmptyUntilExpirySweep() {
+        UUID playerId = UUID.randomUUID();
+        Instant now = Instant.parse("2026-06-14T12:00:00Z");
+        RewardRecord reward = repository.enqueue(playerId, "havenvault", "server-bank-item",
+                "Expired Bundle", Map.of("material", "DIRT"), now, "test");
+
+        assertTrue(repository.claim(reward.id(), now).isEmpty());
+        assertEquals(RewardStatus.PENDING, repository.find(reward.id()).orElseThrow().status());
+        assertEquals(1, repository.expire(now));
+        assertEquals(RewardStatus.EXPIRED, repository.find(reward.id()).orElseThrow().status());
+    }
+
+    @Test
     void revokeChangesStatusOnlyForPendingReward() {
         UUID playerId = UUID.randomUUID();
         Instant now = Instant.parse("2026-06-14T12:00:00Z");

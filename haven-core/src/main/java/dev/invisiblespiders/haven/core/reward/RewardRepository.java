@@ -102,6 +102,7 @@ public final class RewardRepository {
                 UPDATE haven_rewards
                 SET status = ?, claimed_at = ?
                 WHERE id = ? AND status = ?
+                  AND (expires_at IS NULL OR expires_at > ?)
                 """;
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -109,6 +110,7 @@ public final class RewardRepository {
             statement.setLong(2, claimedAt.toEpochMilli());
             statement.setLong(3, rewardId);
             statement.setString(4, RewardStatus.PENDING.name());
+            statement.setLong(5, claimedAt.toEpochMilli());
             if (statement.executeUpdate() == 0) {
                 return Optional.empty();
             }
