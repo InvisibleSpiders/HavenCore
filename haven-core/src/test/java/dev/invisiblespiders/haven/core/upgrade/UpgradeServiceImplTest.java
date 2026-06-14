@@ -2,6 +2,7 @@ package dev.invisiblespiders.haven.core.upgrade;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import dev.invisiblespiders.haven.api.service.HavenEconomyService;
 import dev.invisiblespiders.haven.api.upgrade.HavenUpgradeService;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeCategory;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeContext;
@@ -15,11 +16,17 @@ import dev.invisiblespiders.haven.api.upgrade.UpgradeRequirementResult;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeScope;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeVisibility;
 import dev.invisiblespiders.haven.core.db.SqlMigrator;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.MockedConstruction;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -27,13 +34,19 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class UpgradeServiceImplTest {
@@ -74,6 +87,10 @@ class UpgradeServiceImplTest {
         assertEquals(1, repository.currentLevel(player.getUniqueId(), "test:slots"));
         assertTrue(requirement.consumed());
         assertTrue(effect.applied());
+        UpgradePurchaseRecord record = repository.history(player.getUniqueId()).getFirst();
+        assertEquals("purchase", record.source());
+        assertEquals(1, record.purchasedLevel());
+        assertEquals(player.getUniqueId(), record.purchaserId());
     }
 
     @Test
@@ -204,6 +221,22 @@ class UpgradeServiceImplTest {
     }
 
     @Test
+    void failedRequirementConsumeRefundsPriorConsumedRequirementsInReverseOrder() {
+        List<String> operations = new ArrayList<>();
+        OrderedRequirement first = new OrderedRequirement("first", operations, true);
+        OrderedRequirement second = new OrderedRequirement("second", operations, true);
+        OrderedRequirement third = new OrderedRequirement("third", operations, false);
+        UpgradeServiceImpl service = serviceWith(TestUpgrades.playerTrack("test:slots",
+                List.of(first, second, third), List.of(new TestEffect(true, true))));
+
+        UpgradePurchaseResult result = service.purchase(player, "test:slots");
+
+        assertFalse(result.succeeded());
+        assertEquals(List.of("consume:first", "consume:second", "consume:third", "refund:second", "refund:first"),
+                operations);
+    }
+
+    @Test
     void failedEffectValidationReturnsEffectInvalidAndDoesNotConsumeRequirements() {
         TestRequirement requirement = new TestRequirement(true, true);
         TestEffect effect = new TestEffect(false, true);
@@ -218,6 +251,22 @@ class UpgradeServiceImplTest {
     }
 
     @Test
+    void failedEffectApplyRollsBackAppliedEffectsInReverseOrder() {
+        List<String> operations = new ArrayList<>();
+        OrderedEffect first = new OrderedEffect("first", operations, true);
+        OrderedEffect second = new OrderedEffect("second", operations, true);
+        OrderedEffect third = new OrderedEffect("third", operations, false);
+        UpgradeServiceImpl service = serviceWith(TestUpgrades.playerTrack("test:slots",
+                List.of(new TestRequirement(true, true)), List.of(first, second, third)));
+
+        UpgradePurchaseResult result = service.purchase(player, "test:slots");
+
+        assertFalse(result.succeeded());
+        assertEquals(List.of("apply:first", "apply:second", "apply:third", "rollback:second", "rollback:first"),
+                operations);
+    }
+
+    @Test
     void successfulSecondPurchaseBuysLevelTwoAndRecordsCurrentLevelTwo() {
         UpgradeServiceImpl service = serviceWith(TestUpgrades.playerTrack("test:slots",
                 List.of(TestUpgrades.level(1), TestUpgrades.level(2))));
@@ -227,6 +276,33 @@ class UpgradeServiceImplTest {
 
         assertTrue(result.succeeded());
         assertEquals(2, repository.currentLevel(player.getUniqueId(), "test:slots"));
+    }
+
+    @Test
+    void currentLevelDelegatesToRepository() {
+        UpgradeServiceImpl service = new UpgradeServiceImpl(repository);
+        UUID playerId = player.getUniqueId();
+        repository.recordPurchase("test-provider", "test:slots", playerId, "PLAYER", 4, playerId, "fixture");
+
+        assertEquals(4, service.currentLevel(playerId, "test:slots"));
+    }
+
+    @Test
+    void purchaseWithoutScopeRecordsPlayerScope() {
+        UpgradeServiceImpl service = serviceWith(TestUpgrades.playerTrack("test:slots"));
+
+        service.purchase(player, "test:slots");
+
+        assertEquals("PLAYER", repository.history(player.getUniqueId()).getFirst().targetScope());
+    }
+
+    @Test
+    void purchaseWithExplicitScopeRecordsThatScope() {
+        UpgradeServiceImpl service = serviceWith(TestUpgrades.playerTrack("test:slots"));
+
+        service.purchase(player, "test:slots", UpgradeScope.ONLINE_ELIGIBLE_PLAYERS);
+
+        assertEquals("ONLINE_ELIGIBLE_PLAYERS", repository.history(player.getUniqueId()).getFirst().targetScope());
     }
 
     @Test
@@ -280,6 +356,172 @@ class UpgradeServiceImplTest {
         assertEquals(1, repository.history(targetPlayerId).size());
     }
 
+    @Test
+    void grantUnknownUpgradeReturnsUnknownUpgrade() {
+        UpgradeServiceImpl service = serviceWith(TestUpgrades.playerTrack("test:slots"));
+
+        UpgradePurchaseResult result = service.grant(UUID.randomUUID(), "test:missing", 1, "admin");
+
+        assertFalse(result.succeeded());
+        assertEquals("unknown-upgrade", result.code());
+    }
+
+    @Test
+    void revokeUnknownUpgradeReturnsUnknownUpgrade() {
+        UpgradeServiceImpl service = serviceWith(TestUpgrades.playerTrack("test:slots"));
+
+        UpgradePurchaseResult result = service.revoke(UUID.randomUUID(), "test:missing", "admin");
+
+        assertFalse(result.succeeded());
+        assertEquals("unknown-upgrade", result.code());
+    }
+
+    @Test
+    void findDefinitionReturnsRegisteredDefinitionAndDefinitionsSnapshotRemainsStableAfterUnregister() {
+        UpgradeDefinition definition = TestUpgrades.playerTrack("test:slots");
+        UpgradeServiceImpl service = serviceWith(definition);
+        List<UpgradeDefinition> snapshot = service.definitions();
+
+        assertEquals(Optional.of(definition), service.findDefinition("test:slots"));
+        service.unregisterProvider("test-provider");
+
+        assertEquals(List.of(definition), snapshot);
+        assertTrue(service.definitions().isEmpty());
+    }
+
+    @Test
+    void moneyRequirementRejectsNegativeAmount() {
+        assertThrows(IllegalArgumentException.class,
+                () -> new MoneyRequirement(mock(HavenEconomyService.class), -0.01));
+    }
+
+    @Test
+    void moneyRequirementValidatesConsumesAndRefundsThroughEconomyService() {
+        HavenEconomyService economy = mock(HavenEconomyService.class);
+        UUID playerId = player.getUniqueId();
+        when(economy.has(playerId, 25.0)).thenReturn(true);
+        when(economy.withdraw(playerId, 25.0)).thenReturn(true);
+        MoneyRequirement requirement = new MoneyRequirement(economy, 25.0);
+        UpgradeContext context = contextFor(player);
+
+        assertTrue(requirement.validate(context).satisfied());
+        requirement.consume(context);
+        requirement.refund(context);
+
+        verify(economy).has(playerId, 25.0);
+        verify(economy).withdraw(playerId, 25.0);
+        verify(economy).deposit(playerId, 25.0);
+    }
+
+    @Test
+    void itemRequirementRejectsNullMaterialAndNonPositiveAmount() {
+        assertThrows(NullPointerException.class, () -> new ItemRequirement(null, 1));
+        assertThrows(IllegalArgumentException.class, () -> new ItemRequirement(Material.DIAMOND, 0));
+        assertThrows(IllegalArgumentException.class, () -> new ItemRequirement(Material.DIAMOND, -1));
+    }
+
+    @Test
+    void itemRequirementValidatesInventoryHasEnoughMaterial() {
+        PlayerInventory inventory = mock(PlayerInventory.class);
+        when(player.getInventory()).thenReturn(inventory);
+        when(inventory.getContents()).thenReturn(new ItemStack[]{
+                stack(Material.DIAMOND, 2),
+                stack(Material.EMERALD, 10),
+                stack(Material.DIAMOND, 3)
+        });
+        ItemRequirement requirement = new ItemRequirement(Material.DIAMOND, 5);
+
+        assertTrue(requirement.validate(contextFor(player)).satisfied());
+
+        when(inventory.getContents()).thenReturn(new ItemStack[]{stack(Material.DIAMOND, 4)});
+        assertFalse(requirement.validate(contextFor(player)).satisfied());
+    }
+
+    @Test
+    void itemRequirementConsumeRemovesMatchingMaterialItems() {
+        PlayerInventory inventory = mock(PlayerInventory.class);
+        when(player.getInventory()).thenReturn(inventory);
+        ItemStack first = stack(Material.DIAMOND, 2);
+        ItemStack second = stack(Material.EMERALD, 10);
+        ItemStack third = stack(Material.DIAMOND, 4);
+        ItemStack[] contents = {
+                first,
+                second,
+                third
+        };
+        when(inventory.getContents()).thenReturn(contents);
+        ItemRequirement requirement = new ItemRequirement(Material.DIAMOND, 5);
+
+        requirement.consume(contextFor(player));
+
+        ArgumentCaptor<ItemStack[]> captor = ArgumentCaptor.forClass(ItemStack[].class);
+        verify(inventory).setContents(captor.capture());
+        ItemStack[] updated = captor.getValue();
+        assertEquals(null, updated[0]);
+        assertEquals(Material.EMERALD, updated[1].getType());
+        assertSame(third, updated[2]);
+        assertEquals(1, updated[2].getAmount());
+    }
+
+    @Test
+    void itemRequirementRefundGivesItemsBack() {
+        PlayerInventory inventory = mock(PlayerInventory.class);
+        when(player.getInventory()).thenReturn(inventory);
+        ItemRequirement requirement = new ItemRequirement(Material.DIAMOND, 5);
+        List<List<?>> constructorArguments = new ArrayList<>();
+
+        try (MockedConstruction<ItemStack> ignored = mockConstruction(ItemStack.class,
+                (mock, context) -> constructorArguments.add(context.arguments()))) {
+            requirement.refund(contextFor(player));
+        }
+
+        ArgumentCaptor<ItemStack> captor = ArgumentCaptor.forClass(ItemStack.class);
+        verify(inventory).addItem(captor.capture());
+        assertEquals(Material.DIAMOND, constructorArguments.getFirst().get(0));
+        assertEquals(5, constructorArguments.getFirst().get(1));
+    }
+
+    @Test
+    void expRequirementRejectsNonPositiveLevels() {
+        assertThrows(IllegalArgumentException.class, () -> new ExpRequirement(0));
+        assertThrows(IllegalArgumentException.class, () -> new ExpRequirement(-1));
+    }
+
+    @Test
+    void expRequirementValidatesConsumesAndRefundsPlayerLevels() {
+        ExpRequirement requirement = new ExpRequirement(5);
+        when(player.getLevel()).thenReturn(7);
+
+        assertTrue(requirement.validate(contextFor(player)).satisfied());
+
+        requirement.consume(contextFor(player));
+        verify(player).setLevel(2);
+
+        when(player.getLevel()).thenReturn(2);
+        requirement.refund(contextFor(player));
+        verify(player).setLevel(7);
+
+        when(player.getLevel()).thenReturn(4);
+        assertFalse(requirement.validate(contextFor(player)).satisfied());
+    }
+
+    @Test
+    void permissionRequirementValidatesPermissionAndConsumeRefundAreNoOps() {
+        PermissionRequirement requirement = new PermissionRequirement("haven.test");
+        Player permissionPlayer = mock(Player.class);
+        when(permissionPlayer.hasPermission("haven.test")).thenReturn(true, false);
+        UpgradeContext context = new UpgradeContext(permissionPlayer, UUID.randomUUID(), "test:slots", 1,
+                UpgradeScope.PLAYER, Map.of());
+
+        assertTrue(requirement.validate(context).satisfied());
+        assertFalse(requirement.validate(context).satisfied());
+
+        clearInvocations(permissionPlayer);
+        requirement.consume(context);
+        requirement.refund(context);
+        verifyNoInteractions(permissionPlayer);
+    }
+
     private UpgradeServiceImpl serviceWith(UpgradeDefinition definition) {
         return serviceWith(repository, definition);
     }
@@ -288,6 +530,14 @@ class UpgradeServiceImplTest {
         UpgradeServiceImpl service = new UpgradeServiceImpl(repository);
         service.registerProvider(TestUpgrades.provider(definition.providerId(), definition));
         return service;
+    }
+
+    private UpgradeContext contextFor(Player player) {
+        return new UpgradeContext(player, player.getUniqueId(), "test:slots", 1, UpgradeScope.PLAYER, Map.of());
+    }
+
+    private ItemStack stack(Material material, int amount) {
+        return new TestItemStack(material, amount);
     }
 
     private static final class TestRequirement implements UpgradeRequirement {
@@ -335,6 +585,41 @@ class UpgradeServiceImplTest {
         }
     }
 
+    private static final class OrderedRequirement implements UpgradeRequirement {
+        private final String name;
+        private final List<String> operations;
+        private final boolean consumes;
+
+        private OrderedRequirement(String name, List<String> operations, boolean consumes) {
+            this.name = name;
+            this.operations = operations;
+            this.consumes = consumes;
+        }
+
+        @Override
+        public String type() {
+            return "ordered-requirement";
+        }
+
+        @Override
+        public UpgradeRequirementResult validate(UpgradeContext context) {
+            return UpgradeRequirementResult.success();
+        }
+
+        @Override
+        public void consume(UpgradeContext context) {
+            operations.add("consume:" + name);
+            if (!consumes) {
+                throw new IllegalStateException("consume failed");
+            }
+        }
+
+        @Override
+        public void refund(UpgradeContext context) {
+            operations.add("refund:" + name);
+        }
+    }
+
     private static final class TestEffect implements UpgradeEffect {
         private final boolean validates;
         private final boolean applies;
@@ -377,6 +662,61 @@ class UpgradeServiceImplTest {
 
         private boolean rolledBack() {
             return rolledBack;
+        }
+    }
+
+    private static final class OrderedEffect implements UpgradeEffect {
+        private final String name;
+        private final List<String> operations;
+        private final boolean applies;
+
+        private OrderedEffect(String name, List<String> operations, boolean applies) {
+            this.name = name;
+            this.operations = operations;
+            this.applies = applies;
+        }
+
+        @Override
+        public String type() {
+            return "ordered-effect";
+        }
+
+        @Override
+        public void apply(UpgradeContext context) {
+            operations.add("apply:" + name);
+            if (!applies) {
+                throw new IllegalStateException("apply failed");
+            }
+        }
+
+        @Override
+        public void rollback(UpgradeContext context) {
+            operations.add("rollback:" + name);
+        }
+    }
+
+    private static final class TestItemStack extends ItemStack {
+        private final Material material;
+        private int amount;
+
+        private TestItemStack(Material material, int amount) {
+            this.material = material;
+            this.amount = amount;
+        }
+
+        @Override
+        public Material getType() {
+            return material;
+        }
+
+        @Override
+        public int getAmount() {
+            return amount;
+        }
+
+        @Override
+        public void setAmount(int amount) {
+            this.amount = amount;
         }
     }
 
