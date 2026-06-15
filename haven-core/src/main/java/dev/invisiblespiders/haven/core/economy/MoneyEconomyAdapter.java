@@ -20,7 +20,7 @@ public class MoneyEconomyAdapter implements EconomyAdapter {
     }
 
     @Override
-    public boolean isAvailable() { return hook.hasEconomyProvider(); }
+    public boolean isAvailable() { return hook.getEconomy() != null; }
 
     private Economy eco() { return hook.getEconomy(); }
 

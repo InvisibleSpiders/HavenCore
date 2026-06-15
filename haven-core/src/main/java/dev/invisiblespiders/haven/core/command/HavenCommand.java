@@ -330,8 +330,8 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
         if (!(hook instanceof VaultUnlockedHook vaultUnlocked)) {
             return "";
         }
-        return " <gray>plugin=<white>" + (vaultUnlocked.isPluginPresent() ? "DETECTED" : "MISSING")
-            + " <gray>provider=<white>" + readyLabel(vaultUnlocked.hasEconomyProvider());
+        return " <gray>plugin=<white>" + (vaultUnlocked.isVaultPluginPresent() ? "DETECTED" : "MISSING")
+            + " <gray>provider=<white>" + readyLabel(vaultUnlocked.getEconomy() != null);
     }
 
     private String statusColor(boolean ready) {
