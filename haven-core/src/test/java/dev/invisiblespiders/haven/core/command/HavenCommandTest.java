@@ -138,8 +138,8 @@ class HavenCommandTest {
         List<String> messages = sentPlainMessages(sender);
         assertTrue(messages.stream().anyMatch(message -> message.contains("Hooks:")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("vaultunlocked")
-            && message.contains("UNAVAILABLE") && message.contains("plugin=DETECTED")
-            && message.contains("provider=UNAVAILABLE")));
+            && message.contains("UNAVAILABLE") && message.contains("Vault present")
+            && message.contains("no economy provider registered")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("Economy:")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("preferred=money")
             && message.contains("money=READY") && message.contains("item=UNAVAILABLE")));

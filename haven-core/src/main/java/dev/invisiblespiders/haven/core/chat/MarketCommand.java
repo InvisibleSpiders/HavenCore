@@ -11,6 +11,7 @@ import org.bukkit.entity.Player;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class MarketCommand implements CommandExecutor, TabCompleter {
@@ -20,14 +21,19 @@ public class MarketCommand implements CommandExecutor, TabCompleter {
 
     private final MarketQueue queue;
     private final ChatSettings.MarketConfig config;
-    private final HavenWarpService warpService;
+    private final Supplier<HavenWarpService> warpServiceSupplier;
     private final HavenCooldownService cooldownService;
 
     public MarketCommand(MarketQueue queue, ChatSettings.MarketConfig config,
                          HavenWarpService warpService, HavenCooldownService cooldownService) {
+        this(queue, config, () -> warpService, cooldownService);
+    }
+
+    public MarketCommand(MarketQueue queue, ChatSettings.MarketConfig config,
+                         Supplier<HavenWarpService> warpServiceSupplier, HavenCooldownService cooldownService) {
         this.queue = queue;
         this.config = config;
-        this.warpService = warpService;
+        this.warpServiceSupplier = warpServiceSupplier;
         this.cooldownService = cooldownService;
     }
 
@@ -65,7 +71,7 @@ public class MarketCommand implements CommandExecutor, TabCompleter {
         String shopWarp = args[1];
         String message = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
 
-        if (!warpService.hasShopWarp(player.getUniqueId(), shopWarp)) {
+        if (!warpService().hasShopWarp(player.getUniqueId(), shopWarp)) {
             player.sendMessage(MM.deserialize("<red>You don't have a shop warp named '<white>"
                     + shopWarp + "<red>'. Create one with HavenWarps first."));
             return true;
@@ -101,10 +107,15 @@ public class MarketCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 1) return List.of("advertise", "mute");
         if (args.length == 2 && args[0].equalsIgnoreCase("advertise") && sender instanceof Player player) {
-            return warpService.getShopWarps(player.getUniqueId()).stream()
+            return warpService().getShopWarps(player.getUniqueId()).stream()
                     .filter(w -> w.toLowerCase().startsWith(args[1].toLowerCase()))
                     .collect(Collectors.toList());
         }
         return List.of();
+    }
+
+    private HavenWarpService warpService() {
+        HavenWarpService service = warpServiceSupplier.get();
+        return service == null ? new NoOpWarpService() : service;
     }
 }
