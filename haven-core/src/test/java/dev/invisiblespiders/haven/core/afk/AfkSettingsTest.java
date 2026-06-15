@@ -27,6 +27,7 @@ class AfkSettingsTest {
         assertThat(settings.activityEvents().commands()).isTrue();
         assertThat(settings.activityEvents().interact()).isTrue();
         assertThat(settings.detection().minRotationDelta()).isEqualTo(1.5f);
+        assertThat(settings.detection().patternMinIdleSeconds()).isEqualTo(30);
         assertThat(settings.detection().patternAlert()).isTrue();
         assertThat(settings.detection().patternAlertPermission()).isEqualTo("haven.afk.alerts");
     }
@@ -45,6 +46,7 @@ class AfkSettingsTest {
               interact: false
             detection:
               min-rotation-delta: 2.0
+              pattern-min-idle-seconds: 45
               pattern-alert: false
               pattern-alert-permission: "custom.perm"
             """));
@@ -55,6 +57,7 @@ class AfkSettingsTest {
         assertThat(settings.activityEvents().keyboardInput()).isFalse();
         assertThat(settings.activityEvents().chat()).isTrue();
         assertThat(settings.detection().minRotationDelta()).isEqualTo(2.0f);
+        assertThat(settings.detection().patternMinIdleSeconds()).isEqualTo(45);
         assertThat(settings.detection().patternAlert()).isFalse();
         assertThat(settings.detection().patternAlertPermission()).isEqualTo("custom.perm");
     }

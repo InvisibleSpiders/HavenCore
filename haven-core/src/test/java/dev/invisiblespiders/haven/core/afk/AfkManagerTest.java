@@ -2,6 +2,7 @@ package dev.invisiblespiders.haven.core.afk;
 
 import dev.invisiblespiders.haven.api.model.HavenPlayer;
 import dev.invisiblespiders.haven.api.service.HavenPlayerService;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Server;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -11,6 +12,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.lang.reflect.Method;
+import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -28,6 +31,7 @@ class AfkManagerTest {
     @Mock Server server;
     @Mock HavenPlayerService playerService;
     @Mock Player player;
+    @Mock Logger logger;
 
     AfkSettings settings;
     AfkManager manager;
@@ -37,7 +41,7 @@ class AfkManagerTest {
     void setup() {
         uuid = UUID.randomUUID();
         when(plugin.getServer()).thenReturn(server);
-        when(plugin.getLogger()).thenReturn(Logger.getLogger("test"));
+        when(plugin.getLogger()).thenReturn(logger);
         settings = AfkSettings.from(new org.bukkit.configuration.file.YamlConfiguration());
         manager = new AfkManager(settings, plugin, playerService);
     }
@@ -80,5 +84,27 @@ class AfkManagerTest {
         manager.onQuit(uuid);
         assertThat(manager.isAfk(uuid)).isFalse();
         assertThat(manager.getIdleSeconds(uuid)).isEqualTo(0L);
+    }
+
+    @Test
+    void regularActiveMovementDoesNotTriggerPatternWarning() throws Exception {
+        when(player.getUniqueId()).thenReturn(uuid);
+        when(player.getName()).thenReturn("ActivePlayer");
+        doReturn(List.of(player)).when(server).getOnlinePlayers();
+        when(player.hasPermission("haven.afk.alerts")).thenReturn(true);
+
+        for (int i = 0; i < 10; i++) {
+            manager.recordActivity(player);
+        }
+        invokeTick(manager);
+
+        verify(player, never()).sendMessage(any(Component.class));
+        verify(logger, never()).warning(contains("Suspicious pattern"));
+    }
+
+    private static void invokeTick(AfkManager manager) throws Exception {
+        Method tick = AfkManager.class.getDeclaredMethod("tick");
+        tick.setAccessible(true);
+        tick.invoke(manager);
     }
 }

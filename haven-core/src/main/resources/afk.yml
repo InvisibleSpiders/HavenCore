@@ -24,6 +24,9 @@ detection:
   # Minimum yaw/pitch delta (degrees) to count as genuine rotation.
   # Micro-rotation bots typically send deltas below 1.0.
   min-rotation-delta: 1.5
+  # Only sample repeated activity for bypass alerts after this many idle seconds.
+  # Normal continuous movement/look input stays activity but is not suspicious.
+  pattern-min-idle-seconds: 30
   # Notify admins when a player's activity reset intervals are suspiciously regular.
   pattern-alert: true
   pattern-alert-permission: "haven.afk.alerts"
