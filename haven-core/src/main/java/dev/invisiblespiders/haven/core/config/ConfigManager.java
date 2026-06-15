@@ -25,11 +25,12 @@ public class ConfigManager {
     private FileConfiguration afk;
     private FileConfiguration tab;
     private FileConfiguration chat;
+    private FileConfiguration messages2;
 
     private static final List<String> CONFIG_FILES = Arrays.asList(
         "config.yml", "database.yml", "messages.yml",
         "economy.yml", "storage.yml", "codex.yml", "hooks.yml", "op-toggle.yml",
-        "upgrades.yml", "rewards.yml", "afk.yml", "tab.yml", "chat.yml"
+        "upgrades.yml", "rewards.yml", "afk.yml", "tab.yml", "chat.yml", "custommessages.yml"
     );
 
     public ConfigManager(Plugin plugin) {
@@ -58,6 +59,7 @@ public class ConfigManager {
         afk      = load("afk.yml");
         tab      = load("tab.yml");
         chat     = load("chat.yml");
+        messages2 = load("custommessages.yml");
         boolean luckPermsInstalled = plugin.getServer().getPluginManager().getPlugin("LuckPerms") != null;
         ConfigDiagnostics.logWarnings(this, luckPermsInstalled, plugin.getLogger());
     }
@@ -82,7 +84,8 @@ public class ConfigManager {
     public FileConfiguration getRewards()  { return rewards; }
     public FileConfiguration getAfk()      { return afk; }
     public FileConfiguration getTab()      { return tab; }
-    public FileConfiguration getChat()     { return chat; }
+    public FileConfiguration getChat()      { return chat; }
+    public FileConfiguration getMessages2() { return messages2; }
 
     /** Builds a HikariConfig from database.yml settings. */
     public HikariConfig buildHikariConfig() {

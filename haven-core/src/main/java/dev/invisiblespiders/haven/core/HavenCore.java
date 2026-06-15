@@ -7,6 +7,7 @@ import dev.invisiblespiders.haven.api.service.HavenSuiteRegistry;
 import dev.invisiblespiders.haven.api.upgrade.HavenUpgradeService;
 import dev.invisiblespiders.haven.core.async.HavenAsyncExecutors;
 import dev.invisiblespiders.haven.api.service.HavenChatService;
+import dev.invisiblespiders.haven.api.service.HavenMessageService;
 import dev.invisiblespiders.haven.api.service.HavenWarpService;
 import dev.invisiblespiders.haven.core.afk.AfkCommand;
 import dev.invisiblespiders.haven.core.afk.AfkManager;
@@ -19,6 +20,13 @@ import dev.invisiblespiders.haven.core.chat.ChatSettings;
 import dev.invisiblespiders.haven.core.chat.MarketCommand;
 import dev.invisiblespiders.haven.core.chat.MarketQueue;
 import dev.invisiblespiders.haven.core.chat.NoOpWarpService;
+import dev.invisiblespiders.haven.core.message.AfkMsgCommand;
+import dev.invisiblespiders.haven.core.message.JoinMsgCommand;
+import dev.invisiblespiders.haven.core.message.MessageSettings;
+import dev.invisiblespiders.haven.core.message.MiniMessageSanitizer;
+import dev.invisiblespiders.haven.core.message.PlayerMessageListener;
+import dev.invisiblespiders.haven.core.message.PlayerMessageService;
+import dev.invisiblespiders.haven.core.message.QuitMsgCommand;
 import dev.invisiblespiders.haven.core.command.HavenCommand;
 import dev.invisiblespiders.haven.core.command.RewardAdminCommand;
 import dev.invisiblespiders.haven.core.command.RewardsCommand;
@@ -267,6 +275,42 @@ public class HavenCore extends JavaPlugin {
             if (marketCmd != null) { marketCmd.setExecutor(marketCommand); marketCmd.setTabCompleter(marketCommand); }
 
             getLogger().info("Chat channel system enabled (" + chatSettings.channels().size() + " channel(s)).");
+        }
+
+        // ── Custom Messages ───────────────────────────────────────────────────
+        PlayerMessageService playerMessageService = null;
+        if (configManager.getMain().getBoolean("features.custom-messages", true)) {
+            MessageSettings messageSettings = MessageSettings.from(configManager.getMessages2());
+            MiniMessageSanitizer sanitizer = new MiniMessageSanitizer(messageSettings.filter());
+            playerMessageService = new PlayerMessageService(messageSettings, playerService, sanitizer);
+
+            getServer().getPluginManager().registerEvents(
+                    new PlayerMessageListener(playerMessageService), this);
+
+            sm.register(HavenMessageService.class, playerMessageService, this, ServicePriority.Normal);
+
+            var joinMsgCmd = getCommand("joinmsg");
+            if (joinMsgCmd != null) {
+                var c = new JoinMsgCommand(messageSettings, playerService, playerMessageService, sanitizer);
+                joinMsgCmd.setExecutor(c); joinMsgCmd.setTabCompleter(c);
+            }
+            var quitMsgCmd = getCommand("quitmsg");
+            if (quitMsgCmd != null) {
+                var c = new QuitMsgCommand(messageSettings, playerService, playerMessageService, sanitizer);
+                quitMsgCmd.setExecutor(c); quitMsgCmd.setTabCompleter(c);
+            }
+            var afkMsgCmd = getCommand("afkmsg");
+            if (afkMsgCmd != null) {
+                var c = new AfkMsgCommand(messageSettings, playerService, playerMessageService, sanitizer);
+                afkMsgCmd.setExecutor(c); afkMsgCmd.setTabCompleter(c);
+            }
+            getLogger().info("Custom message system enabled.");
+        }
+
+        // Late-inject AFK broadcast delegate
+        if (afkManager != null && playerMessageService != null) {
+            final PlayerMessageService pms = playerMessageService;
+            afkManager.setMessageServiceDelegate(pms::getAfkMessage);
         }
 
         // Commands

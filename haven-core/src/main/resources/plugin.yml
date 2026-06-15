@@ -40,6 +40,15 @@ commands:
     description: Submit a market advertisement
     usage: /market advertise <shopwarp> <message>
     permission: haven.market.advertise
+  joinmsg:
+    description: Set or select your custom join message
+    usage: /joinmsg set|select|clear [value]
+  quitmsg:
+    description: Set or select your custom quit message
+    usage: /quitmsg set|select|clear [value]
+  afkmsg:
+    description: Set or select your custom AFK message
+    usage: /afkmsg set|select|clear [value]
 
 permissions:
   haven.upgrades:
@@ -95,4 +104,16 @@ permissions:
     default: true
   haven.admin.channel:
     description: Admin channel management
+    default: op
+  haven.messages.custom:
+    description: Set personal join/quit/afk messages with /joinmsg|quitmsg|afkmsg set
+    default: true
+  haven.messages.bypass-filter:
+    description: Bypass MiniMessage tag and regex filter when setting custom messages
+    default: op
+  haven.messages.premium:
+    description: Access premium death message pool
+    default: false
+  haven.admin.messages:
+    description: Unlock message presets for other players via /haven messages unlock
     default: op
