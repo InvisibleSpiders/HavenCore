@@ -1,0 +1,21 @@
+channels:
+  global:
+    display-name: "Global"
+    format: "[%haven_rank_prefix%] <player_name>: <message>"
+    recipient-type: ALL
+    default: true
+
+  staff:
+    display-name: "Staff"
+    format: "<red>[Staff]</red> <player_name>: <message>"
+    recipient-type: PERMISSION
+    permission: "haven.staff"
+    trigger-prefix: "@"
+    default: false
+
+market:
+  slot-interval: 300
+  player-cooldown: 600
+  format: "<gold>[Market]</gold> <player_name> @ <shopwarp>: <message>"
+  warp-command: "/warp %s"
+  warp-hover: "<yellow>Click to visit %s!"
