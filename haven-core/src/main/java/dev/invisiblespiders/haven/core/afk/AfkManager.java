@@ -2,10 +2,20 @@ package dev.invisiblespiders.haven.core.afk;
 
 import dev.invisiblespiders.haven.api.service.HavenAfkService;
 import dev.invisiblespiders.haven.api.service.HavenPlayerService;
+import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.player.PlayerInputEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
@@ -19,7 +29,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
-public class AfkManager implements HavenAfkService {
+public class AfkManager implements HavenAfkService, Listener {
 
     private static final MiniMessage MM = MiniMessage.miniMessage();
     private static final int PATTERN_SAMPLE_SIZE = 10;
@@ -106,6 +116,65 @@ public class AfkManager implements HavenAfkService {
         activityTimestamps.remove(uuid);
         BukkitTask t = actionBarTasks.remove(uuid);
         if (t != null) t.cancel();
+    }
+
+    // ── Bukkit event listeners ───────────────────────────────────────────────
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onMove(PlayerMoveEvent event) {
+        if (!settings.activityEvents().movement()) return;
+        if (settings.strictMovement()) {
+            if (!event.hasChangedOrientation()) return;
+            float yawDelta = Math.abs(event.getTo().getYaw() - event.getFrom().getYaw());
+            float pitchDelta = Math.abs(event.getTo().getPitch() - event.getFrom().getPitch());
+            if (yawDelta < settings.detection().minRotationDelta()
+                    && pitchDelta < settings.detection().minRotationDelta()) return;
+        }
+        recordActivity(event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onInput(PlayerInputEvent event) {
+        if (!settings.activityEvents().keyboardInput()) return;
+        var input = event.getInput();
+        if (input.isForward() || input.isBackward() || input.isLeft() || input.isRight()
+                || input.isJump() || input.isSneak() || input.isSprint()) {
+            recordActivity(event.getPlayer());
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onChat(AsyncChatEvent event) {
+        if (!settings.activityEvents().chat()) return;
+        recordActivity(event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onCommand(PlayerCommandPreprocessEvent event) {
+        if (!settings.activityEvents().commands()) return;
+        recordActivity(event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onInteract(PlayerInteractEvent event) {
+        if (!settings.activityEvents().interact()) return;
+        recordActivity(event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onTeleport(PlayerTeleportEvent event) {
+        var cause = event.getCause();
+        if (cause == PlayerTeleportEvent.TeleportCause.NETHER_PORTAL
+                || cause == PlayerTeleportEvent.TeleportCause.END_PORTAL
+                || cause == PlayerTeleportEvent.TeleportCause.PLUGIN) {
+            return;
+        }
+        recordActivity(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        onQuit(event.getPlayer().getUniqueId());
     }
 
     @Override
