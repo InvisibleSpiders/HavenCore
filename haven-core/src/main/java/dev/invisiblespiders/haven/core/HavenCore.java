@@ -252,10 +252,6 @@ public class HavenCore extends JavaPlugin {
         if (configManager.getMain().getBoolean("features.chat-formatting", true)) {
             ChatSettings chatSettings = ChatSettings.from(configManager.getChat());
 
-            HavenWarpService warpService = java.util.Optional.ofNullable(
-                    getServer().getServicesManager().load(HavenWarpService.class))
-                    .orElse(new NoOpWarpService());
-
             ChatChannelService chatChannelService = new ChatChannelService(chatSettings, papiHook, this);
             ChatChannelListener chatListener = new ChatChannelListener(chatChannelService, chatSettings);
             getServer().getPluginManager().registerEvents(chatListener, this);
@@ -264,7 +260,12 @@ public class HavenCore extends JavaPlugin {
             marketQueue.start(chatSettings.market(), playerService, this);
 
             MarketCommand marketCommand = new MarketCommand(
-                    marketQueue, chatSettings.market(), warpService, cooldowns);
+                    marketQueue,
+                    chatSettings.market(),
+                    () -> java.util.Optional.ofNullable(
+                            getServer().getServicesManager().load(HavenWarpService.class))
+                            .orElse(new NoOpWarpService()),
+                    cooldowns);
             ChannelCommand channelCommand = new ChannelCommand(chatChannelService);
 
             sm.register(HavenChatService.class, chatChannelService, this, ServicePriority.Normal);
