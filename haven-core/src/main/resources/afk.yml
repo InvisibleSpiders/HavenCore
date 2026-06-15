@@ -1,0 +1,35 @@
+# AFK detection configuration. Changes require /haven reload.
+
+# Seconds of inactivity before a player is marked AFK.
+timeout: 300
+
+# Seconds of total idle time before auto-kick. Set to 0 to disable.
+kick-timeout: 1800
+
+# When true, only camera rotation (yaw/pitch change) or keyboard input counts as
+# movement activity. Blocks water traps, pistons, bubble columns, and portal
+# teleports from resetting the timer. Recommended: true.
+strict-movement: true
+
+# Which event types reset the AFK timer. Each can be toggled independently.
+activity-events:
+  movement: true         # PlayerMoveEvent (strict-movement controls what qualifies)
+  keyboard-input: true   # PlayerInputEvent — most evasion-resistant
+  chat: true             # AsyncChatEvent
+  commands: true         # PlayerCommandPreprocessEvent
+  interact: true         # PlayerInteractEvent
+
+# Anti-evasion detection settings.
+detection:
+  # Minimum yaw/pitch delta (degrees) to count as genuine rotation.
+  # Micro-rotation bots typically send deltas below 1.0.
+  min-rotation-delta: 1.5
+  # Notify admins when a player's activity reset intervals are suspiciously regular.
+  pattern-alert: true
+  pattern-alert-permission: "haven.afk.alerts"
+
+messages:
+  afk-broadcast: "<gray><player> is now AFK."
+  return-broadcast: "<gray><player> is no longer AFK."
+  action-bar: "<yellow>You are AFK. Move to return."
+  kick-reason: "You were kicked for being AFK."
