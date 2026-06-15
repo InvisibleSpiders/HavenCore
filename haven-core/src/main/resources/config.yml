@@ -12,6 +12,8 @@ features:
   tiers: true
   item-registry: true
   hooks: true
+  afk: true
+  tab-list: true
 
 # Tier resolution
 # HavenTierService reads this meta key from LuckPerms, then falls back to permission nodes.

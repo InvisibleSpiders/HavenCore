@@ -8,6 +8,7 @@ authors:
 website: https://github.com/InvisibleSpiders/HavenCore
 
 # Soft-depend so HavenCore loads AFTER these if present (then our hooks can find them).
+# Note: VaultUnlocked's runtime plugin name is "Vault" (drop-in replacement).
 # Dependent Haven plugins declare `depend: [HavenCore]` to load after us.
 softdepend:
   - Vault
@@ -19,6 +20,7 @@ commands:
   haven:
     description: HavenCore admin command
     usage: /haven [help|status|doctor|version|reload|toggleop|upgrades|rewards]
+    permission: haven.use
   upgrades:
     description: Open the Haven upgrades dialog
     usage: /upgrades
@@ -27,6 +29,10 @@ commands:
     description: Open the Haven rewards dialog
     usage: /rewards
     permission: haven.rewards
+  afk:
+    description: Toggle AFK state or manage AFK notifications
+    usage: /afk [notifications]
+    permission: haven.afk.manual
 
 permissions:
   haven.upgrades:
@@ -61,4 +67,13 @@ permissions:
     default: op
   haven.admin.rewards:
     description: Manage player rewards
+    default: op
+  haven.afk.manual:
+    description: Manually toggle AFK state with /afk
+    default: true
+  haven.afk.alerts:
+    description: Receive alerts when suspicious AFK bypass patterns are detected
+    default: op
+  haven.admin.afk:
+    description: Admin AFK management via /haven afk subcommands
     default: op

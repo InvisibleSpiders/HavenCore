@@ -22,11 +22,13 @@ public class ConfigManager {
     private FileConfiguration opToggle;
     private FileConfiguration upgrades;
     private FileConfiguration rewards;
+    private FileConfiguration afk;
+    private FileConfiguration tab;
 
     private static final List<String> CONFIG_FILES = Arrays.asList(
         "config.yml", "database.yml", "messages.yml",
         "economy.yml", "storage.yml", "codex.yml", "hooks.yml", "op-toggle.yml",
-        "upgrades.yml", "rewards.yml"
+        "upgrades.yml", "rewards.yml", "afk.yml", "tab.yml"
     );
 
     public ConfigManager(Plugin plugin) {
@@ -52,6 +54,8 @@ public class ConfigManager {
         opToggle = load("op-toggle.yml");
         upgrades = load("upgrades.yml");
         rewards  = load("rewards.yml");
+        afk      = load("afk.yml");
+        tab      = load("tab.yml");
         boolean luckPermsInstalled = plugin.getServer().getPluginManager().getPlugin("LuckPerms") != null;
         ConfigDiagnostics.logWarnings(this, luckPermsInstalled, plugin.getLogger());
     }
@@ -74,6 +78,8 @@ public class ConfigManager {
     public FileConfiguration getOpToggle() { return opToggle; }
     public FileConfiguration getUpgrades() { return upgrades; }
     public FileConfiguration getRewards()  { return rewards; }
+    public FileConfiguration getAfk()      { return afk; }
+    public FileConfiguration getTab()      { return tab; }
 
     /** Builds a HikariConfig from database.yml settings. */
     public HikariConfig buildHikariConfig() {
