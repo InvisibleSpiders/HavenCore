@@ -6,6 +6,10 @@ import dev.invisiblespiders.haven.api.service.*;
 import dev.invisiblespiders.haven.api.service.HavenSuiteRegistry;
 import dev.invisiblespiders.haven.api.upgrade.HavenUpgradeService;
 import dev.invisiblespiders.haven.core.async.HavenAsyncExecutors;
+import dev.invisiblespiders.haven.core.afk.AfkCommand;
+import dev.invisiblespiders.haven.core.afk.AfkManager;
+import dev.invisiblespiders.haven.core.afk.AfkSettings;
+import dev.invisiblespiders.haven.core.afk.NoOpAfkService;
 import dev.invisiblespiders.haven.core.command.HavenCommand;
 import dev.invisiblespiders.haven.core.command.RewardAdminCommand;
 import dev.invisiblespiders.haven.core.command.RewardsCommand;
@@ -28,6 +32,7 @@ import dev.invisiblespiders.haven.core.hook.PlaceholderAPIHook;
 import dev.invisiblespiders.haven.core.hook.VaultUnlockedHook;
 import dev.invisiblespiders.haven.core.dialog.RewardDialog;
 import dev.invisiblespiders.haven.core.dialog.UpgradeDialog;
+import dev.invisiblespiders.haven.core.placeholder.HavenExpansion;
 import dev.invisiblespiders.haven.core.repository.CodexRepository;
 import dev.invisiblespiders.haven.core.repository.PlayerRepository;
 import dev.invisiblespiders.haven.core.repository.VirtualInventoryRepository;
@@ -35,6 +40,11 @@ import dev.invisiblespiders.haven.core.reward.RewardRuntimeBootstrap;
 import dev.invisiblespiders.haven.core.upgrade.UpgradeRepository;
 import dev.invisiblespiders.haven.core.upgrade.UpgradeServiceImpl;
 import dev.invisiblespiders.haven.core.service.*;
+import dev.invisiblespiders.haven.core.tab.TabManager;
+import dev.invisiblespiders.haven.core.tab.TabSettings;
+import dev.invisiblespiders.haven.core.util.GroupResolver;
+import net.luckperms.api.LuckPerms;
+import net.luckperms.api.LuckPermsProvider;
 import org.bukkit.Material;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -50,6 +60,8 @@ public class HavenCore extends JavaPlugin {
     private HookRegistryImpl hookRegistry;
     private ExecutorService asyncExecutor;
     private HavenSuiteRegistryImpl suiteRegistry;
+    private AfkManager afkManager;
+    private TabManager tabManager;
 
     @Override
     public void onEnable() {
@@ -82,7 +94,7 @@ public class HavenCore extends JavaPlugin {
         opToggleService.registerPermissions();
 
         // Hooks
-        VaultUnlockedHook vaultHook = new VaultUnlockedHook();
+        VaultUnlockedHook vaultHook = new VaultUnlockedHook(this, getLogger());
         ExcellentEconomyHook eeHook  = new ExcellentEconomyHook();
         PlaceholderAPIHook papiHook  = new PlaceholderAPIHook();
         HookSettings hookSettings = HookSettings.from(configManager.getHooks());
@@ -166,6 +178,58 @@ public class HavenCore extends JavaPlugin {
         sm.register(HavenSuiteRegistry.class,     suiteRegistry,  this, ServicePriority.Normal);
         sm.register(HavenUpgradeService.class,    upgradeService, this, ServicePriority.Normal);
 
+        // ── LuckPerms + GroupResolver ─────────────────────────────────────────
+        LuckPerms luckPerms = null;
+        if (getServer().getPluginManager().getPlugin("LuckPerms") != null) {
+            try {
+                luckPerms = LuckPermsProvider.get();
+            } catch (IllegalStateException ignored) {
+                getLogger().warning("LuckPerms not available — group formatting will use 'default' for all players.");
+            }
+        }
+        GroupResolver groupResolver = new GroupResolver(luckPerms);
+
+        // ── AFK ───────────────────────────────────────────────────────────────
+        if (configManager.getMain().getBoolean("features.afk", true)) {
+            AfkSettings afkSettings = AfkSettings.from(configManager.getAfk());
+            afkManager = new AfkManager(afkSettings, this, playerService);
+            getServer().getPluginManager().registerEvents(afkManager, this);
+            afkManager.start();
+            sm.register(HavenAfkService.class, afkManager, this, ServicePriority.Normal);
+            getLogger().info("AFK detection enabled.");
+        }
+
+        // ── Tab ───────────────────────────────────────────────────────────────
+        if (configManager.getMain().getBoolean("features.tab-list", true)) {
+            TabSettings tabSettings = TabSettings.from(configManager.getTab());
+            HavenAfkService afkForTab = afkManager != null ? afkManager : new NoOpAfkService();
+            tabManager = new TabManager(tabSettings, afkForTab, groupResolver, papiHook, this);
+            getServer().getPluginManager().registerEvents(tabManager, this);
+            tabManager.start();
+            getLogger().info("Tab layout enabled.");
+        }
+
+        // Late-inject cross-references after both modules are wired.
+        if (afkManager != null && tabManager != null) {
+            afkManager.setTabManager(tabManager);
+        }
+
+        // ── PAPI expansion ────────────────────────────────────────────────────
+        if (papiHook.isAvailable() && afkManager != null) {
+            new HavenExpansion(afkManager, groupResolver).register();
+            getLogger().info("PAPI expansion registered.");
+        }
+
+        // ── /afk command ──────────────────────────────────────────────────────
+        if (afkManager != null) {
+            var afkCmd = getCommand("afk");
+            if (afkCmd != null) {
+                AfkCommand afkCommand = new AfkCommand(afkManager, playerService);
+                afkCmd.setExecutor(afkCommand);
+                afkCmd.setTabCompleter(afkCommand);
+            }
+        }
+
         // Commands
         UpgradeAdminCommand upgradeAdmin = new UpgradeAdminCommand(
             configManager, upgradeService, name -> getServer().getOfflinePlayer(name)
@@ -196,6 +260,9 @@ public class HavenCore extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (tabManager != null) tabManager.stop();
+        if (afkManager != null) afkManager.stop();
+
         // Disable hooks first (before unregistering services)
         if (hookRegistry != null) hookRegistry.disableAll();
 
