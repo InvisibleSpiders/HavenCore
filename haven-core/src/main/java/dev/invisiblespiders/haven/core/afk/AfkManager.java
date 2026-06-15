@@ -23,7 +23,7 @@ public class AfkManager implements HavenAfkService {
 
     private static final MiniMessage MM = MiniMessage.miniMessage();
     private static final int PATTERN_SAMPLE_SIZE = 10;
-    private static final double SUSPICIOUS_STD_DEV_MS = 200.0;
+    private static final double PATTERN_MAX_STD_DEV_MS = 200.0;
 
     private final AfkSettings settings;
     private final Plugin plugin;
@@ -199,11 +199,10 @@ public class AfkManager implements HavenAfkService {
 
     private void broadcastFiltered(Component message) {
         for (Player online : plugin.getServer().getOnlinePlayers()) {
-            playerService.getCached(online.getUniqueId()).ifPresent(hp -> {
-                if (!"true".equals(hp.getData("haven-core", "afk-broadcast-muted").orElse(""))) {
-                    online.sendMessage(message);
-                }
-            });
+            var hp = playerService.getCached(online.getUniqueId());
+            boolean muted = hp.map(p -> "true".equals(
+                    p.getData("haven-core", "afk-broadcast-muted").orElse(""))).orElse(false);
+            if (!muted) online.sendMessage(message);
         }
     }
 
@@ -240,12 +239,12 @@ public class AfkManager implements HavenAfkService {
                 .average().orElse(0);
         double stdDev = Math.sqrt(variance);
 
-        if (stdDev < SUSPICIOUS_STD_DEV_MS) {
+        if (stdDev < PATTERN_MAX_STD_DEV_MS) {
             String alertPermission = settings.detection().patternAlertPermission();
             Component alert = MM.deserialize(
-                    "<yellow>[AFK Alert] <white>" + player.getName()
-                    + " <yellow>may be using an AFK bypass script (std dev: "
-                    + String.format("%.0f", stdDev) + "ms).");
+                    "<yellow>[AFK Alert] <white><player> <yellow>may be using an AFK bypass script (std dev: <std_dev>ms).",
+                    Placeholder.unparsed("player", player.getName()),
+                    Placeholder.unparsed("std_dev", String.format("%.0f", stdDev)));
             for (Player admin : plugin.getServer().getOnlinePlayers()) {
                 if (admin.hasPermission(alertPermission)) admin.sendMessage(alert);
             }
