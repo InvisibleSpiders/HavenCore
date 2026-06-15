@@ -34,11 +34,12 @@ public record AfkSettings(
         }
     }
 
-    public record DetectionSettings(float minRotationDelta, boolean patternAlert,
+    public record DetectionSettings(float minRotationDelta, int patternMinIdleSeconds, boolean patternAlert,
                                      String patternAlertPermission) {
         public static DetectionSettings from(FileConfiguration config) {
             return new DetectionSettings(
                     (float) config.getDouble("detection.min-rotation-delta", 1.5),
+                    config.getInt("detection.pattern-min-idle-seconds", 30),
                     config.getBoolean("detection.pattern-alert", true),
                     config.getString("detection.pattern-alert-permission", "haven.afk.alerts")
             );

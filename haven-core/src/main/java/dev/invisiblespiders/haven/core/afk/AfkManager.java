@@ -93,8 +93,11 @@ public class AfkManager implements HavenAfkService, Listener {
     public void recordActivity(Player player) {
         UUID uuid = player.getUniqueId();
         long now = System.currentTimeMillis();
+        Long previousActivity = lastActivity.get(uuid);
         lastActivity.put(uuid, now);
-        if (settings.detection().patternAlert()) {
+        if (settings.detection().patternAlert()
+                && previousActivity != null
+                && now - previousActivity >= settings.detection().patternMinIdleSeconds() * 1000L) {
             Deque<Long> timestamps = activityTimestamps.computeIfAbsent(uuid, k -> new ArrayDeque<>());
             timestamps.addLast(now);
             if (timestamps.size() > PATTERN_SAMPLE_SIZE) timestamps.pollFirst();
