@@ -3,3 +3,5 @@ V1__haven_players.sql
 V2__haven_player_data.sql
 V3__haven_virtual_inventories.sql
 V4__haven_codex_progress.sql
+V5__haven_upgrades.sql
+V6__haven_rewards.sql

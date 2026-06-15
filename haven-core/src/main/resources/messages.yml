@@ -12,3 +12,16 @@ haven:
   economy-unavailable: "<yellow>Economy is currently unavailable."
   hook-loaded: "<gray>[HavenCore] Hook loaded: <white><hook></white>"
   hook-unavailable: "<gray>[HavenCore] Hook unavailable (plugin not found): <white><hook></white>"
+
+upgrades:
+  no-permission: "<red>You don't have permission to use upgrades."
+  unknown: "<red>That upgrade is not available."
+  cannot-afford: "<red>You cannot afford that upgrade."
+  maxed: "<gray>That upgrade is already maxed."
+  purchased: "<green>Upgrade purchased."
+
+rewards:
+  no-permission: "<red>You don't have permission to use rewards."
+  claimed: "<green>Reward claimed."
+  expired: "<red>That reward has expired."
+  unavailable: "<red>That reward is no longer available."

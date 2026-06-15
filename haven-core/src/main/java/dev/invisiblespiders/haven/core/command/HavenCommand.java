@@ -41,6 +41,8 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
     private final ExecutorService asyncExecutor;
     private final OpToggleService opToggleService;
     private final HavenSuiteRegistry suiteRegistry;
+    private final UpgradeAdminCommand upgradeAdminCommand;
+    private final RewardAdminCommand rewardAdminCommand;
 
     public HavenCommand(Plugin plugin, ConfigManager config, HavenHookRegistry hooks) {
         this(plugin, config, hooks, null, null);
@@ -58,12 +60,21 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
     public HavenCommand(Plugin plugin, ConfigManager config, HavenHookRegistry hooks,
                         ExecutorService asyncExecutor, OpToggleService opToggleService,
                         HavenSuiteRegistry suiteRegistry) {
+        this(plugin, config, hooks, asyncExecutor, opToggleService, suiteRegistry, null, null);
+    }
+
+    public HavenCommand(Plugin plugin, ConfigManager config, HavenHookRegistry hooks,
+                        ExecutorService asyncExecutor, OpToggleService opToggleService,
+                        HavenSuiteRegistry suiteRegistry, UpgradeAdminCommand upgradeAdminCommand,
+                        RewardAdminCommand rewardAdminCommand) {
         this.plugin = plugin;
         this.config = config;
         this.hooks = hooks;
         this.asyncExecutor = asyncExecutor;
         this.opToggleService = opToggleService;
         this.suiteRegistry = suiteRegistry;
+        this.upgradeAdminCommand = upgradeAdminCommand;
+        this.rewardAdminCommand = rewardAdminCommand;
     }
 
     @Override
@@ -125,11 +136,34 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
                 }
             }
             case "toggleop" -> toggleOp(sender);
+            case "upgrades" -> {
+                if (upgradeAdminCommand == null) {
+                    sender.sendMessage(MM.deserialize("<red>Upgrade admin service not available."));
+                } else {
+                    upgradeAdminCommand.execute(sender, tail(args));
+                }
+            }
+            case "rewards" -> {
+                if (rewardAdminCommand == null) {
+                    sender.sendMessage(MM.deserialize("<red>Reward admin service not available."));
+                } else {
+                    rewardAdminCommand.execute(sender, tail(args));
+                }
+            }
             default -> sender.sendMessage(MM.deserialize(
-                "<gray>Usage: /haven [help|status|doctor|version|reload|toggleop]"
+                "<gray>Usage: /haven [help|status|doctor|version|reload|toggleop|upgrades|rewards]"
             ));
         }
         return true;
+    }
+
+    private String[] tail(String[] args) {
+        if (args.length <= 1) {
+            return new String[0];
+        }
+        String[] tail = new String[args.length - 1];
+        System.arraycopy(args, 1, tail, 0, tail.length);
+        return tail;
     }
 
     private boolean requirePermission(CommandSender sender, String permission) {
@@ -338,6 +372,8 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(MM.deserialize("<gray>/haven version <dark_gray>- <white>Show HavenCore, Paper, and Java versions <gray>(haven.use)"));
         sender.sendMessage(MM.deserialize("<gray>/haven reload <dark_gray>- <white>Reload configuration files <gray>(haven.admin.reload)"));
         sender.sendMessage(MM.deserialize("<gray>/haven toggleop <dark_gray>- <white>Toggle OP for configured UUID entries only <gray>(havencore.toggleop.<code>)"));
+        sender.sendMessage(MM.deserialize("<gray>/haven upgrades <dark_gray>- <white>Manage player upgrades <gray>(haven.admin.upgrades)"));
+        sender.sendMessage(MM.deserialize("<gray>/haven rewards <dark_gray>- <white>Manage player rewards <gray>(haven.admin.rewards)"));
     }
 
     private void sendVersion(CommandSender sender) {
@@ -364,11 +400,23 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
             if (sender instanceof Player) {
                 subcommands.add("toggleop");
             }
+            if (upgradeAdminCommand != null && sender.hasPermission("haven.admin.upgrades")) {
+                subcommands.add("upgrades");
+            }
+            if (rewardAdminCommand != null && sender.hasPermission("haven.admin.rewards")) {
+                subcommands.add("rewards");
+            }
             String prefix = args[0].toLowerCase();
             return subcommands.stream()
                 .sorted()
                 .filter(subcommand -> subcommand.startsWith(prefix))
                 .toList();
+        }
+        if (args.length >= 2 && args[0].equalsIgnoreCase("upgrades") && upgradeAdminCommand != null) {
+            return upgradeAdminCommand.tabComplete(sender, tail(args));
+        }
+        if (args.length >= 2 && args[0].equalsIgnoreCase("rewards") && rewardAdminCommand != null) {
+            return rewardAdminCommand.tabComplete(sender, tail(args));
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("reload")
                 && sender.hasPermission("haven.admin.reload")) {
