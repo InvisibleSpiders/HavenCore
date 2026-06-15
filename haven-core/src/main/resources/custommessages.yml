@@ -1,0 +1,103 @@
+filter:
+  max-length: 100
+  blocked-patterns:
+    - "(?i)(example_blocked_word)"
+    - "(?i)https?://"
+
+join-presets:
+  default:
+    message: "<green>→ <player> joined."
+    unlock-type: FREE
+    default: true
+  chicken-slayer:
+    message: "<yellow><player>, the Chicken Slayer, has arrived."
+    unlock-type: CODEX
+    codex-milestone: "chicken_slayer_5"
+  royal:
+    message: "<gold>✦ <player> has graced us with their presence."
+    unlock-type: PERMISSION
+    permission: "haven.messages.preset.royal"
+
+quit-presets:
+  default:
+    message: "<gray>← <player> left."
+    unlock-type: FREE
+    default: true
+
+afk-presets:
+  default:
+    message: "<gray><player> is now AFK."
+    unlock-type: FREE
+    default: true
+
+death-messages:
+  ENTITY_ATTACK:
+    - message: "<player> was slain by <killer>."
+    - message: "<player> got destroyed by <killer>."
+    - message: "<player> found out why <killer> is dangerous."
+      permission: "haven.messages.premium"
+  PROJECTILE:
+    - message: "<player> was shot by <killer>."
+    - message: "<player> couldn't dodge <killer>'s shot."
+  FALL:
+    - message: "<player> hit the ground too hard."
+    - message: "<player> mistook gravity for a suggestion."
+    - message: "<player> forgot that falling hurts."
+      permission: "haven.messages.premium"
+  DROWNING:
+    - message: "<player> forgot they weren't a fish."
+    - message: "<player> drowned."
+  FIRE:
+    - message: "<player> went up in flames."
+    - message: "<player> burned to a crisp."
+  FIRE_TICK:
+    - message: "<player> burned to death."
+  LAVA:
+    - message: "<player> tried to swim in lava."
+    - message: "<player> discovered lava is not a pool."
+  MAGIC:
+    - message: "<player> was killed by magic."
+  POISON:
+    - message: "<player> was poisoned to death."
+  STARVATION:
+    - message: "<player> starved to death."
+  LIGHTNING:
+    - message: "<player> was struck by lightning."
+    - message: "<player> was chosen by the gods."
+      permission: "haven.messages.premium"
+  SUFFOCATION:
+    - message: "<player> suffocated in a wall."
+  VOID:
+    - message: "<player> fell into the void."
+    - message: "<player> found the bottom of the world."
+  WITHER:
+    - message: "<player> withered away."
+  ENTITY_EXPLOSION:
+    - message: "<player> blew up."
+    - message: "<player> was at the wrong place at the wrong time."
+  BLOCK_EXPLOSION:
+    - message: "<player> was caught in an explosion."
+  CONTACT:
+    - message: "<player> was poked to death."
+  CRAMMING:
+    - message: "<player> was squished."
+  FREEZE:
+    - message: "<player> froze to death."
+  SONIC_BOOM:
+    - message: "<player> was obliterated by a sonic boom."
+    - message: "<player> angered the Warden."
+      permission: "haven.messages.premium"
+  THORNS:
+    - message: "<player> was killed by thorns."
+  DRAGON_BREATH:
+    - message: "<player> was consumed by dragon's breath."
+  FLY_INTO_WALL:
+    - message: "<player> flew into a wall."
+    - message: "<player> forgot elytra have limits."
+  HOT_FLOOR:
+    - message: "<player> discovered the floor was lava."
+  KILL:
+    - message: "<player> was killed."
+  CUSTOM:
+    - message: "<player> died."
+    - message: "<player> met an untimely end."
