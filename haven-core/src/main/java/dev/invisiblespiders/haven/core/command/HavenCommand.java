@@ -246,10 +246,11 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(MM.deserialize("<gold><bold>HavenCore</bold> <gray>v" + plugin.getPluginMeta().getVersion()));
         sender.sendMessage(MM.deserialize("<gray>Hooks:"));
         for (HavenHook hook : hooks.getAll()) {
-            String color = hookStatusColor(hook.getStatus());
+            String color = hook.isAvailable() ? "<green>" : "<red>";
+            String status = hook.isAvailable() ? "LOADED" : "UNAVAILABLE";
+            String detail = describeHookState(hook);
             sender.sendMessage(MM.deserialize("  " + color + hook.getId()
-                + " <dark_gray>[" + hook.getStatus() + "]"
-                + hookDetails(hook)));
+                + " <dark_gray>[" + status + "]" + (detail.isEmpty() ? "" : " <gray>" + detail)));
         }
 
         ServicesManager services = plugin.getServer().getServicesManager();
@@ -374,6 +375,16 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(MM.deserialize("<gray>/haven toggleop <dark_gray>- <white>Toggle OP for configured UUID entries only <gray>(havencore.toggleop.<code>)"));
         sender.sendMessage(MM.deserialize("<gray>/haven upgrades <dark_gray>- <white>Manage player upgrades <gray>(haven.admin.upgrades)"));
         sender.sendMessage(MM.deserialize("<gray>/haven rewards <dark_gray>- <white>Manage player rewards <gray>(haven.admin.rewards)"));
+    }
+
+    /** Returns a human-readable explanation of why a hook is or isn't available. */
+    private String describeHookState(HavenHook hook) {
+        if (hook instanceof VaultUnlockedHook v) {
+            if (v.isAvailable()) return "(Economy provider connected)";
+            if (v.isVaultPluginPresent()) return "(Vault present, no economy provider registered)";
+            return "(Vault plugin not installed)";
+        }
+        return "";
     }
 
     private void sendVersion(CommandSender sender) {
