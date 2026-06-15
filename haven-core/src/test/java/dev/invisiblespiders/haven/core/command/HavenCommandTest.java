@@ -1,7 +1,6 @@
 package dev.invisiblespiders.haven.core.command;
 
 import dev.invisiblespiders.haven.api.service.HavenHookRegistry;
-import dev.invisiblespiders.haven.api.hook.HavenHookStatus;
 import dev.invisiblespiders.haven.api.service.HavenCodexService;
 import dev.invisiblespiders.haven.api.service.HavenDataSource;
 import dev.invisiblespiders.haven.api.service.HavenEconomyService;
@@ -109,10 +108,9 @@ class HavenCommandTest {
         when(sender.hasPermission("haven.use")).thenReturn(true);
         VaultUnlockedHook vaultUnlocked = mock(VaultUnlockedHook.class);
         when(vaultUnlocked.getId()).thenReturn("vaultunlocked");
-        when(vaultUnlocked.isAvailable()).thenReturn(true);
-        when(vaultUnlocked.getStatus()).thenReturn(HavenHookStatus.MISCONFIGURED);
-        when(vaultUnlocked.isPluginPresent()).thenReturn(true);
-        when(vaultUnlocked.hasEconomyProvider()).thenReturn(false);
+        when(vaultUnlocked.isAvailable()).thenReturn(false);
+        when(vaultUnlocked.isVaultPluginPresent()).thenReturn(true);
+        when(vaultUnlocked.getEconomy()).thenReturn(null);
         when(hooks.getAll()).thenReturn(List.of(vaultUnlocked));
         HavenEconomyService economy = mock(HavenEconomyService.class);
         when(economy.getPreferredAdapter()).thenReturn("money");
@@ -140,7 +138,7 @@ class HavenCommandTest {
         List<String> messages = sentPlainMessages(sender);
         assertTrue(messages.stream().anyMatch(message -> message.contains("Hooks:")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("vaultunlocked")
-            && message.contains("MISCONFIGURED") && message.contains("plugin=DETECTED")
+            && message.contains("UNAVAILABLE") && message.contains("plugin=DETECTED")
             && message.contains("provider=UNAVAILABLE")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("Economy:")));
         assertTrue(messages.stream().anyMatch(message -> message.contains("preferred=money")
