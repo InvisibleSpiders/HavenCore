@@ -23,8 +23,8 @@ public interface HavenTierService {
      * Returns the highest numeric value the player has among the given
      * permission-keyed map. Used for limit resolution across tiers.
      *
-     * Example: resolveHighest(player, Map.of("landclaims.limit.default", 10,
-     *                                         "landclaims.limit.vip", 75))
+     * Example: resolveHighest(player, Map.of("havenclaims.limit.default", 10,
+     *                                         "havenclaims.limit.vip", 75))
      */
     int resolveHighest(Player player, java.util.Map<String, Integer> permissionValues);
 }
