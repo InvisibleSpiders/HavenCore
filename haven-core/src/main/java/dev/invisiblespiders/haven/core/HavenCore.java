@@ -6,10 +6,19 @@ import dev.invisiblespiders.haven.api.service.*;
 import dev.invisiblespiders.haven.api.service.HavenSuiteRegistry;
 import dev.invisiblespiders.haven.api.upgrade.HavenUpgradeService;
 import dev.invisiblespiders.haven.core.async.HavenAsyncExecutors;
+import dev.invisiblespiders.haven.api.service.HavenChatService;
+import dev.invisiblespiders.haven.api.service.HavenWarpService;
 import dev.invisiblespiders.haven.core.afk.AfkCommand;
 import dev.invisiblespiders.haven.core.afk.AfkManager;
 import dev.invisiblespiders.haven.core.afk.AfkSettings;
 import dev.invisiblespiders.haven.core.afk.NoOpAfkService;
+import dev.invisiblespiders.haven.core.chat.ChannelCommand;
+import dev.invisiblespiders.haven.core.chat.ChatChannelListener;
+import dev.invisiblespiders.haven.core.chat.ChatChannelService;
+import dev.invisiblespiders.haven.core.chat.ChatSettings;
+import dev.invisiblespiders.haven.core.chat.MarketCommand;
+import dev.invisiblespiders.haven.core.chat.MarketQueue;
+import dev.invisiblespiders.haven.core.chat.NoOpWarpService;
 import dev.invisiblespiders.haven.core.command.HavenCommand;
 import dev.invisiblespiders.haven.core.command.RewardAdminCommand;
 import dev.invisiblespiders.haven.core.command.RewardsCommand;
@@ -62,6 +71,7 @@ public class HavenCore extends JavaPlugin {
     private HavenSuiteRegistryImpl suiteRegistry;
     private AfkManager afkManager;
     private TabManager tabManager;
+    private MarketQueue marketQueue;
 
     @Override
     public void onEnable() {
@@ -230,6 +240,35 @@ public class HavenCore extends JavaPlugin {
             }
         }
 
+        // ── Chat ──────────────────────────────────────────────────────────────
+        if (configManager.getMain().getBoolean("features.chat-formatting", true)) {
+            ChatSettings chatSettings = ChatSettings.from(configManager.getChat());
+
+            HavenWarpService warpService = java.util.Optional.ofNullable(
+                    getServer().getServicesManager().load(HavenWarpService.class))
+                    .orElse(new NoOpWarpService());
+
+            ChatChannelService chatChannelService = new ChatChannelService(chatSettings, papiHook, this);
+            ChatChannelListener chatListener = new ChatChannelListener(chatChannelService, chatSettings);
+            getServer().getPluginManager().registerEvents(chatListener, this);
+
+            marketQueue = new MarketQueue();
+            marketQueue.start(chatSettings.market(), playerService, this);
+
+            MarketCommand marketCommand = new MarketCommand(
+                    marketQueue, chatSettings.market(), warpService, cooldowns);
+            ChannelCommand channelCommand = new ChannelCommand(chatChannelService);
+
+            sm.register(HavenChatService.class, chatChannelService, this, ServicePriority.Normal);
+
+            var channelCmd = getCommand("channel");
+            if (channelCmd != null) { channelCmd.setExecutor(channelCommand); channelCmd.setTabCompleter(channelCommand); }
+            var marketCmd = getCommand("market");
+            if (marketCmd != null) { marketCmd.setExecutor(marketCommand); marketCmd.setTabCompleter(marketCommand); }
+
+            getLogger().info("Chat channel system enabled (" + chatSettings.channels().size() + " channel(s)).");
+        }
+
         // Commands
         UpgradeAdminCommand upgradeAdmin = new UpgradeAdminCommand(
             configManager, upgradeService, name -> getServer().getOfflinePlayer(name)
@@ -260,6 +299,7 @@ public class HavenCore extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (marketQueue != null) marketQueue.stop();
         if (tabManager != null) tabManager.stop();
         if (afkManager != null) afkManager.stop();
 

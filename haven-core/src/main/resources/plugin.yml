@@ -33,6 +33,13 @@ commands:
     description: Toggle AFK state or manage AFK notifications
     usage: /afk [notifications]
     permission: haven.afk.manual
+  channel:
+    description: Switch your active chat channel
+    usage: /channel <id>
+  market:
+    description: Submit a market advertisement
+    usage: /market advertise <shopwarp> <message>
+    permission: haven.market.advertise
 
 permissions:
   haven.upgrades:
@@ -76,4 +83,16 @@ permissions:
     default: op
   haven.admin.afk:
     description: Admin AFK management via /haven afk subcommands
+    default: op
+  haven.staff:
+    description: Access to the staff chat channel
+    default: op
+  haven.market.advertise:
+    description: Submit market advertisements via /market
+    default: true
+  haven.market.mute:
+    description: Mute/unmute market broadcast messages
+    default: true
+  haven.admin.channel:
+    description: Admin channel management
     default: op
