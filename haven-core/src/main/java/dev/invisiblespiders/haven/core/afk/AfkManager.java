@@ -2,6 +2,7 @@ package dev.invisiblespiders.haven.core.afk;
 
 import dev.invisiblespiders.haven.api.service.HavenAfkService;
 import dev.invisiblespiders.haven.api.service.HavenPlayerService;
+import dev.invisiblespiders.haven.core.tab.TabManager;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -40,9 +41,8 @@ public class AfkManager implements HavenAfkService, Listener {
     private final HavenPlayerService playerService;
     private final Logger logger;
 
-    // Late-injected after init to avoid circular dependency.
-    // Type is Object for now; will be replaced with TabManager in Task 9.
-    private @Nullable Object tabManager;
+    // Late-injected after init to avoid circular dependency with TabManager.
+    private @Nullable TabManager tabManager;
 
     // Late-injected; will be wired to HavenMessageService in Plan 3 Task 8.
     // Stored as Runnable-returning supplier to avoid forward-reference compile error.
@@ -86,14 +86,8 @@ public class AfkManager implements HavenAfkService, Listener {
         this.messageServiceDelegate = delegate;
     }
 
-    /**
-     * Placeholder for TabManager injection (Task 9).
-     * Parameter is Object to avoid a forward-reference compile error;
-     * will be changed to TabManager once that class exists.
-     */
-    public void setTabManager(@Nullable Object tabManager) {
+    public void setTabManager(@Nullable TabManager tabManager) {
         this.tabManager = tabManager;
-        // TODO (Task 9): cast to TabManager and call tabManager.refreshPlayer() in apply/clearAfkEffects
     }
 
     public void recordActivity(Player player) {
@@ -242,7 +236,7 @@ public class AfkManager implements HavenAfkService, Listener {
         Component broadcast = buildAfkBroadcast(player);
         broadcastFiltered(broadcast);
         startActionBarTask(player);
-        // TODO (Task 9): tabManager.refreshPlayer(player)
+        if (tabManager != null) tabManager.refreshPlayer(player);
     }
 
     private void clearAfkEffects(Player player) {
@@ -254,7 +248,7 @@ public class AfkManager implements HavenAfkService, Listener {
         BukkitTask t = actionBarTasks.remove(uuid);
         if (t != null) t.cancel();
         player.clearTitle();
-        // TODO (Task 9): tabManager.refreshPlayer(player)
+        if (tabManager != null) tabManager.refreshPlayer(player);
     }
 
     private Component buildAfkBroadcast(Player player) {
