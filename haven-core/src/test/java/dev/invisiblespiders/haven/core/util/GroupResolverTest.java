@@ -76,4 +76,25 @@ class GroupResolverTest {
         GroupResolver resolver = new GroupResolver(luckPerms);
         assertThat(resolver.getPrimaryGroup(player)).isEqualTo("default");
     }
+
+    @Test
+    void returnsEmptyPrefixWhenUserNull() {
+        when(luckPerms.getPlayerAdapter(Player.class)).thenReturn(playerAdapter);
+        when(playerAdapter.getUser(player)).thenReturn(null);
+
+        GroupResolver resolver = new GroupResolver(luckPerms);
+        assertThat(resolver.getPrefix(player)).isEmpty();
+    }
+
+    @Test
+    void returnsEmptyPrefixWhenMetaDataNull() {
+        when(luckPerms.getPlayerAdapter(Player.class)).thenReturn(playerAdapter);
+        when(playerAdapter.getUser(player)).thenReturn(user);
+        var cdm = mock(net.luckperms.api.cacheddata.CachedDataManager.class);
+        when(user.getCachedData()).thenReturn(cdm);
+        when(cdm.getMetaData()).thenReturn(null);
+
+        GroupResolver resolver = new GroupResolver(luckPerms);
+        assertThat(resolver.getPrefix(player)).isEmpty();
+    }
 }
