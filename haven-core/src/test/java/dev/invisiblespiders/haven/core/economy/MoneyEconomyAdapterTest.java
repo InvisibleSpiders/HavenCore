@@ -10,10 +10,9 @@ import static org.mockito.Mockito.when;
 class MoneyEconomyAdapterTest {
 
     @Test
-    void remainsUnavailableWhenVaultUnlockedPluginLoadedWithoutEconomyProvider() {
+    void unavailableWhenNoEconomyProvider() {
         VaultUnlockedHook hook = mock(VaultUnlockedHook.class);
-        when(hook.isAvailable()).thenReturn(true);
-        when(hook.hasEconomyProvider()).thenReturn(false);
+        when(hook.getEconomy()).thenReturn(null);
 
         MoneyEconomyAdapter adapter = new MoneyEconomyAdapter(hook);
 
