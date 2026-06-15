@@ -1,0 +1,17 @@
+refresh-interval: 5
+
+header:
+  - "<gradient:aqua:blue>✦ Haven SMP ✦</gradient>"
+  - "<gray>discord.gg/haven"
+
+footer:
+  - "<gray>%server_online% / %server_max_players% online"
+
+player-format:
+  default: "<white><player_name>"
+  groups:
+    owner: "<gold>[Owner] <player_name>"
+    admin: "<dark_purple>[Admin] <player_name>"
+    vip: "<green>[VIP] <player_name>"
+
+afk-format: "<gray>[AFK] <player_name>"
