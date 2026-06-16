@@ -16,6 +16,7 @@ features:
   tab-list: true
   chat-formatting: true
   custom-messages: true
+  sleep: true
 
 # Tier resolution
 # HavenTierService reads this meta key from LuckPerms, then falls back to permission nodes.

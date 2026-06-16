@@ -73,6 +73,7 @@ permissions:
       haven.admin.codex: true
       haven.admin.upgrades: true
       haven.admin.rewards: true
+      haven.admin.sleep: true
   haven.admin.reload:
     description: Reload HavenCore configuration
     default: op
@@ -123,4 +124,10 @@ permissions:
     default: false
   haven.admin.messages:
     description: Unlock message presets for other players via /haven messages unlock
+    default: op
+  haven.sleep.bypass:
+    description: Excluded from active player count and sleep threshold checks
+    default: false
+  haven.admin.sleep:
+    description: Manage sleep module via /haven sleep skip|toggle|status
     default: op
