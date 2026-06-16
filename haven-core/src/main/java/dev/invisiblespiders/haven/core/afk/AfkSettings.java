@@ -20,7 +20,7 @@ public record AfkSettings(
     public static AfkSettings from(FileConfiguration config) {
         return new AfkSettings(
                 config.getInt("timeout", 300),
-                config.getInt("kick-timeout", 1800),
+                config.getInt("kick-timeout", 0),
                 config.getBoolean("strict-movement", true),
                 ActivityEvents.from(config),
                 DetectionSettings.from(config),

@@ -19,7 +19,7 @@ class AfkSettingsTest {
     void parsesDefaultsFromEmptyConfig() {
         AfkSettings settings = AfkSettings.from(load(""));
         assertThat(settings.timeout()).isEqualTo(300);
-        assertThat(settings.kickTimeout()).isEqualTo(1800);
+        assertThat(settings.kickTimeout()).isEqualTo(0);
         assertThat(settings.strictMovement()).isTrue();
         assertThat(settings.activityEvents().movement()).isTrue();
         assertThat(settings.activityEvents().keyboardInput()).isTrue();
