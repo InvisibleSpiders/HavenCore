@@ -27,6 +27,7 @@ import dev.invisiblespiders.haven.core.message.MiniMessageSanitizer;
 import dev.invisiblespiders.haven.core.message.PlayerMessageListener;
 import dev.invisiblespiders.haven.core.message.PlayerMessageService;
 import dev.invisiblespiders.haven.core.message.QuitMsgCommand;
+import dev.invisiblespiders.haven.core.command.CodexCommand;
 import dev.invisiblespiders.haven.core.command.HavenCommand;
 import dev.invisiblespiders.haven.core.command.RewardAdminCommand;
 import dev.invisiblespiders.haven.core.command.RewardsCommand;
@@ -45,8 +46,10 @@ import dev.invisiblespiders.haven.core.economy.ItemEconomyAdapter;
 import dev.invisiblespiders.haven.core.economy.MoneyEconomyAdapter;
 import dev.invisiblespiders.haven.core.gui.GuiListener;
 import dev.invisiblespiders.haven.core.hook.ExcellentEconomyHook;
+import dev.invisiblespiders.haven.core.hook.LuckPermsHook;
 import dev.invisiblespiders.haven.core.hook.PlaceholderAPIHook;
 import dev.invisiblespiders.haven.core.hook.VaultUnlockedHook;
+import dev.invisiblespiders.haven.core.dialog.CodexDialog;
 import dev.invisiblespiders.haven.core.dialog.RewardDialog;
 import dev.invisiblespiders.haven.core.dialog.UpgradeDialog;
 import dev.invisiblespiders.haven.core.placeholder.HavenExpansion;
@@ -61,8 +64,6 @@ import dev.invisiblespiders.haven.core.service.*;
 import dev.invisiblespiders.haven.core.tab.TabManager;
 import dev.invisiblespiders.haven.core.tab.TabSettings;
 import dev.invisiblespiders.haven.core.util.GroupResolver;
-import net.luckperms.api.LuckPerms;
-import net.luckperms.api.LuckPermsProvider;
 import org.bukkit.Material;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -113,13 +114,15 @@ public class HavenCore extends JavaPlugin {
         opToggleService.registerPermissions();
 
         // Hooks
-        VaultUnlockedHook vaultHook = new VaultUnlockedHook(this, getLogger());
-        ExcellentEconomyHook eeHook  = new ExcellentEconomyHook();
-        PlaceholderAPIHook papiHook  = new PlaceholderAPIHook();
+        VaultUnlockedHook vaultHook    = new VaultUnlockedHook(this, getLogger());
+        ExcellentEconomyHook eeHook    = new ExcellentEconomyHook();
+        PlaceholderAPIHook papiHook    = new PlaceholderAPIHook();
+        LuckPermsHook luckPermsHook    = new LuckPermsHook();
         HookSettings hookSettings = HookSettings.from(configManager.getHooks());
         if (hookSettings.vaultUnlockedEnabled())    hookRegistry.register(vaultHook);
         if (hookSettings.excellentEconomyEnabled()) hookRegistry.register(eeHook);
         if (hookSettings.placeholderApiEnabled())   hookRegistry.register(papiHook);
+        if (hookSettings.luckPermsEnabled())        hookRegistry.register(luckPermsHook);
 
         // Economy
         EconomySettings economySettings = EconomySettings.from(configManager.getEconomy());
@@ -199,16 +202,11 @@ public class HavenCore extends JavaPlugin {
         sm.register(HavenSuiteRegistry.class,     suiteRegistry,  this, ServicePriority.Normal);
         sm.register(HavenUpgradeService.class,    upgradeService, this, ServicePriority.Normal);
 
-        // ── LuckPerms + GroupResolver ─────────────────────────────────────────
-        LuckPerms luckPerms = null;
-        if (getServer().getPluginManager().getPlugin("LuckPerms") != null) {
-            try {
-                luckPerms = LuckPermsProvider.get();
-            } catch (IllegalStateException ignored) {
-                getLogger().warning("LuckPerms not available — group formatting will use 'default' for all players.");
-            }
+        // ── GroupResolver ─────────────────────────────────────────────────────
+        if (hookSettings.luckPermsEnabled() && !luckPermsHook.isAvailable()) {
+            getLogger().warning("LuckPerms not available — group formatting will use 'default' for all players.");
         }
-        GroupResolver groupResolver = new GroupResolver(luckPerms);
+        GroupResolver groupResolver = new GroupResolver(luckPermsHook.getApi());
 
         // ── AFK ───────────────────────────────────────────────────────────────
         if (configManager.getMain().getBoolean("features.afk", true)) {
@@ -341,6 +339,11 @@ public class HavenCore extends JavaPlugin {
         var rewardsCmd = getCommand("rewards");
         if (rewardsCmd != null) {
             rewardsCmd.setExecutor(new RewardsCommand(configManager, rewardDialog));
+        }
+        CodexDialog codexDialog = new CodexDialog(configManager, codexService);
+        var codexCmd = getCommand("codex");
+        if (codexCmd != null) {
+            codexCmd.setExecutor(new CodexCommand(configManager, codexService, codexDialog, this));
         }
 
         getLogger().info("HavenCore enabled. " + hookRegistry.getAll().size() + " hook(s) registered.");

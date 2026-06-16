@@ -49,6 +49,10 @@ commands:
   afkmsg:
     description: Set or select your custom AFK message
     usage: /afkmsg set|select|clear [value]
+  codex:
+    description: View your codex progress and milestones
+    usage: /codex
+    permission: haven.codex
 
 permissions:
   haven.upgrades:
@@ -111,6 +115,9 @@ permissions:
   haven.messages.bypass-filter:
     description: Bypass MiniMessage tag and regex filter when setting custom messages
     default: op
+  haven.codex:
+    description: Open the player codex dialog
+    default: true
   haven.messages.premium:
     description: Access premium death message pool
     default: false

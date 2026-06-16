@@ -17,5 +17,5 @@ market:
   slot-interval: 300
   player-cooldown: 600
   format: "<gold>[Market]</gold> <player_name> @ <shopwarp>: <message>"
-  warp-command: "/warp %s"
+  warp-command: "/shop %s"
   warp-hover: "<yellow>Click to visit %s!"
