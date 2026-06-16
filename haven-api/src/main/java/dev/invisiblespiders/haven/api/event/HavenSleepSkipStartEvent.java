@@ -13,7 +13,7 @@ public class HavenSleepSkipStartEvent extends HavenEvent {
         this.active = active;
     }
 
-    public World getWorld()   { return world; }
-    public int getSleeping()  { return sleeping; }
-    public int getActive()    { return active; }
+    public World getWorld() { return world; }
+    public int getSleeping() { return sleeping; }
+    public int getActive() { return active; }
 }
