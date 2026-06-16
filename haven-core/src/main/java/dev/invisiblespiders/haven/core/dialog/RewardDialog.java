@@ -32,15 +32,6 @@ public class RewardDialog {
 
     public void open(Player player) {
         List<RewardRecord> pending = rewards.pending(player.getUniqueId());
-        List<ActionButton> buttons = pending.stream()
-                .map(reward -> buttonFor(player, reward))
-                .toList();
-
-        List<DialogBody> body = pending.isEmpty()
-                ? List.of(DialogBody.plainMessage(
-                        CoreText.config(config.getRewards(), "ui.empty", "<gray>No rewards to claim.")))
-                : List.of(DialogBody.plainMessage(
-                        Component.text(pending.size() + " reward(s) ready", NamedTextColor.GRAY)));
 
         ActionButton close = ActionButton.builder(Component.text("Close"))
                 .action(DialogAction.customClick((view, audience) -> {
@@ -50,12 +41,26 @@ public class RewardDialog {
                 }, oneUseOpts()))
                 .build();
 
+        List<ActionButton> buttons = pending.isEmpty()
+                ? List.of(close)
+                : pending.stream().map(reward -> buttonFor(player, reward)).toList();
+
+        List<DialogBody> body = pending.isEmpty()
+                ? List.of(DialogBody.plainMessage(
+                        CoreText.config(config.getRewards(), "ui.empty", "<gray>No rewards to claim.")))
+                : List.of(DialogBody.plainMessage(
+                        Component.text(pending.size() + " reward(s) ready", NamedTextColor.GRAY)));
+
+        // multiAction requires non-empty buttons; when pending is empty the close
+        // button fills that slot and no separate done button is needed.
+        ActionButton done = pending.isEmpty() ? null : close;
+
         Dialog dialog = Dialog.create(factory -> factory.empty()
                 .base(DialogBase.builder(CoreText.config(config.getRewards(), "ui.title", "<gold>Rewards"))
                         .body(body)
                         .afterAction(DialogBase.DialogAfterAction.CLOSE)
                         .build())
-                .type(DialogType.multiAction(buttons, close, 2)));
+                .type(DialogType.multiAction(buttons, done, 2)));
         player.showDialog(dialog);
     }
 
