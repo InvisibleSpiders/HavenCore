@@ -109,4 +109,22 @@ class CoreUpgradeProviderTest {
         CoreUpgradeProvider provider = new CoreUpgradeProvider(load(""), mock(HavenEconomyService.class));
         assertThat(provider.effect("afk-duration", java.util.Map.of())).isEmpty();
     }
+
+    @Test
+    void requirementFactoryReturnsEmptyForNonNumericMoneyAmount() {
+        CoreUpgradeProvider provider = new CoreUpgradeProvider(load(""), mock(HavenEconomyService.class));
+        assertThat(provider.requirement("money", java.util.Map.of("amount", "free"))).isEmpty();
+    }
+
+    @Test
+    void requirementFactoryReturnsEmptyForMissingPermissionNode() {
+        CoreUpgradeProvider provider = new CoreUpgradeProvider(load(""), mock(HavenEconomyService.class));
+        assertThat(provider.requirement("permission", java.util.Map.of())).isEmpty();
+    }
+
+    @Test
+    void requirementFactoryReturnsPermissionForValidNode() {
+        CoreUpgradeProvider provider = new CoreUpgradeProvider(load(""), mock(HavenEconomyService.class));
+        assertThat(provider.requirement("permission", java.util.Map.of("node", "some.permission"))).isPresent();
+    }
 }

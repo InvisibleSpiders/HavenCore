@@ -17,16 +17,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.logging.Logger;
 
 public final class CoreUpgradeProvider implements UpgradeProvider {
 
-    static final String PROVIDER_ID = "haven-core";
+    private static final Logger LOGGER = Logger.getLogger(CoreUpgradeProvider.class.getName());
+    private static final String PROVIDER_ID = "haven-core";
     private static final UpgradeCategory PERSONAL = new UpgradeCategory("personal", "Personal", "⭐", 1);
 
     private final List<UpgradeDefinition> definitions;
     private final HavenEconomyService economy;
 
     public CoreUpgradeProvider(FileConfiguration upgradesConfig, HavenEconomyService economy) {
+        Objects.requireNonNull(upgradesConfig, "upgradesConfig");
         this.economy = Objects.requireNonNull(economy, "economy");
         this.definitions = loadDefinitions(upgradesConfig);
     }
@@ -51,10 +54,23 @@ public final class CoreUpgradeProvider implements UpgradeProvider {
     @Override
     public Optional<UpgradeRequirement> requirement(String type, Map<String, String> values) {
         return switch (type) {
-            case "money" -> Optional.of(new MoneyRequirement(economy,
-                    Double.parseDouble(values.getOrDefault("amount", "0"))));
-            case "permission" -> Optional.of(new PermissionRequirement(
-                    values.getOrDefault("node", "")));
+            case "money" -> {
+                String raw = values.getOrDefault("amount", "0");
+                try {
+                    yield Optional.of(new MoneyRequirement(economy, Double.parseDouble(raw)));
+                } catch (NumberFormatException e) {
+                    LOGGER.warning("CoreUpgradeProvider: invalid money amount '" + raw + "'; skipping requirement");
+                    yield Optional.empty();
+                }
+            }
+            case "permission" -> {
+                String node = values.getOrDefault("node", "");
+                if (node.isBlank()) {
+                    LOGGER.warning("CoreUpgradeProvider: permission node is blank; skipping requirement");
+                    yield Optional.empty();
+                }
+                yield Optional.of(new PermissionRequirement(node));
+            }
             default -> Optional.empty();
         };
     }
