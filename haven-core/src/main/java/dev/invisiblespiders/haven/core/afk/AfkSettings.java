@@ -2,14 +2,21 @@ package dev.invisiblespiders.haven.core.afk;
 
 import org.bukkit.configuration.file.FileConfiguration;
 
+import java.util.List;
+
 public record AfkSettings(
         int timeout,
         int kickTimeout,
         boolean strictMovement,
         ActivityEvents activityEvents,
         DetectionSettings detection,
-        AfkMessages messages
+        AfkMessages messages,
+        List<Integer> upgradeTimeoutBonusSeconds
 ) {
+    public AfkSettings {
+        upgradeTimeoutBonusSeconds = List.copyOf(upgradeTimeoutBonusSeconds);
+    }
+
     public static AfkSettings from(FileConfiguration config) {
         return new AfkSettings(
                 config.getInt("timeout", 300),
@@ -17,8 +24,15 @@ public record AfkSettings(
                 config.getBoolean("strict-movement", true),
                 ActivityEvents.from(config),
                 DetectionSettings.from(config),
-                AfkMessages.from(config)
+                AfkMessages.from(config),
+                config.getIntegerList("upgrade.bonus-seconds")
         );
+    }
+
+    /** Returns the bonus AFK timeout (seconds) for a given upgrade level. Level 0 or out-of-range returns 0. */
+    public int upgradeBonusSeconds(int level) {
+        if (level <= 0 || level > upgradeTimeoutBonusSeconds.size()) return 0;
+        return upgradeTimeoutBonusSeconds.get(level - 1);
     }
 
     public record ActivityEvents(boolean movement, boolean keyboardInput, boolean chat,

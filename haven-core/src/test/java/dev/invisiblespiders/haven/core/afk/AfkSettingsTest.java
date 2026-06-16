@@ -70,4 +70,30 @@ class AfkSettingsTest {
         assertThat(settings.messages().actionBar()).isNotBlank();
         assertThat(settings.messages().kickReason()).isNotBlank();
     }
+
+    @Test
+    void upgradeTimeoutBonusDefaultsToEmptyList() {
+        AfkSettings settings = AfkSettings.from(load(""));
+        assertThat(settings.upgradeBonusSeconds(0)).isEqualTo(0);
+        assertThat(settings.upgradeBonusSeconds(1)).isEqualTo(0);
+        assertThat(settings.upgradeBonusSeconds(5)).isEqualTo(0);
+    }
+
+    @Test
+    void upgradeTimeoutBonusParsedFromConfig() {
+        AfkSettings settings = AfkSettings.from(load("""
+            upgrade:
+              bonus-seconds:
+                - 900
+                - 1800
+                - 3600
+                - 7200
+                - 14400
+            """));
+        assertThat(settings.upgradeBonusSeconds(0)).isEqualTo(0);   // level 0 = no upgrade
+        assertThat(settings.upgradeBonusSeconds(1)).isEqualTo(900);
+        assertThat(settings.upgradeBonusSeconds(3)).isEqualTo(3600);
+        assertThat(settings.upgradeBonusSeconds(5)).isEqualTo(14400);
+        assertThat(settings.upgradeBonusSeconds(6)).isEqualTo(0);   // out of range
+    }
 }

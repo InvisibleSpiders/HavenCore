@@ -36,3 +36,14 @@ messages:
   return-broadcast: "<gray><player> is no longer AFK."
   action-bar: "<yellow>You are AFK. Move to return."
   kick-reason: "You were kicked for being AFK."
+
+# AFK Timer upgrade bonus seconds per level (indexed 1–5).
+# Level 1 = first tier purchased, Level 5 = max tier.
+# Set to 0 to disable upgrade integration at a specific level.
+upgrade:
+  bonus-seconds:
+    - 900    # Level I: +15 min
+    - 1800   # Level II: +30 min
+    - 3600   # Level III: +60 min
+    - 7200   # Level IV: +120 min
+    - 14400  # Level V: +240 min
