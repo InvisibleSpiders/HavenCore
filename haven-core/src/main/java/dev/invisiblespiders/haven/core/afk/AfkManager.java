@@ -225,7 +225,7 @@ public class AfkManager implements HavenAfkService, Listener {
 
             if (!isAfk(uuid) && idleSeconds >= effectiveTimeout(uuid)) {
                 markAfk(player);
-            } else if (isAfk(uuid) && settings.kickTimeout() > 0 && idleSeconds >= settings.kickTimeout()) {
+            } else if (isAfk(uuid) && settings.kickTimeout() > 0 && idleSeconds >= effectiveTimeout(uuid) + settings.kickTimeout()) {
                 player.kick(MM.deserialize(settings.messages().kickReason()));
             }
 

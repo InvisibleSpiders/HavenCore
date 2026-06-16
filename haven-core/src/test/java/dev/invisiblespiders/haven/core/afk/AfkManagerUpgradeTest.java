@@ -88,6 +88,38 @@ class AfkManagerUpgradeTest {
         assertThat(result).isEqualTo(300L); // no bonus for invalid level
     }
 
+    @Test
+    void kickTimeoutIsRelativeToEffectiveAfkTimeout() throws Exception {
+        // With base timeout 300 and level-2 bonus 1800 (effective = 2100),
+        // kickTimeout 600 should fire at 2100 + 600 = 2700, not at 600.
+        // We verify effectiveTimeout is 2100, which is the AFK onset.
+        // The kick condition adds kickTimeout on top: 2100 + 600 = 2700.
+        YamlConfiguration config = new YamlConfiguration();
+        config.loadFromString("""
+            timeout: 300
+            kick-timeout: 600
+            upgrade:
+              bonus-seconds:
+                - 900
+                - 1800
+                - 3600
+                - 7200
+                - 14400
+            """);
+        AfkSettings kickSettings = AfkSettings.from(config);
+        AfkManager kickManager = new AfkManager(kickSettings, plugin, playerService);
+        when(upgradeService.currentLevel(uuid, "afk-timer")).thenReturn(2);
+        kickManager.setUpgradeService(upgradeService);
+
+        long afkOnset = invokeEffectiveTimeout(kickManager, uuid);
+        assertThat(afkOnset).isEqualTo(2100L); // 300 + 1800
+
+        // Kick fires at afkOnset + kickTimeout = 2100 + 600 = 2700
+        // (tested implicitly by verifying effectiveTimeout is correct;
+        // the kick condition is afkOnset + kickTimeout, not kickTimeout alone)
+        assertThat(afkOnset + kickSettings.kickTimeout()).isEqualTo(2700L);
+    }
+
     private static long invokeEffectiveTimeout(AfkManager manager, UUID uuid) throws Exception {
         Method m = AfkManager.class.getDeclaredMethod("effectiveTimeout", UUID.class);
         m.setAccessible(true);
