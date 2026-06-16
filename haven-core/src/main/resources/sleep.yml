@@ -1,0 +1,22 @@
+# HavenCore Sleep Configuration
+# Changes require restart (world.setSleepingIgnored is applied on enable).
+
+worlds:
+  - world          # Add additional world names here
+
+threshold:
+  min-count: 1     # Minimum number of sleeping players to start skip (0 = disabled)
+  min-percent: 0   # Minimum % of active players sleeping (0 = disabled)
+                   # Both conditions must be met. Default: any 1 player starts the skip.
+
+speed:
+  min: 40          # Game-ticks advanced per server-tick at lowest sleeper ratio (~12s skip)
+  max: 200         # Game-ticks advanced per server-tick when 100% of active players sleep (~2.5s skip)
+                   # Normal day/night cycle = 1 game-tick per server-tick.
+
+messages:
+  sleeping:         "<gray>☽ <white><sleeping></white>/<active> sleeping..."
+  skip-start:       "<gold>☽ Night is being skipped!"
+  skip-paused:      "<gray>☽ Skip paused — <white><sleeping></white>/<active> sleeping"
+  skip-complete:    "<green>☀ Dawn breaks!"
+  broadcast-skip:   "<gold>☀ <gray>The night has passed."
