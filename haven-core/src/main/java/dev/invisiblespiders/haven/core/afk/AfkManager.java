@@ -2,6 +2,7 @@ package dev.invisiblespiders.haven.core.afk;
 
 import dev.invisiblespiders.haven.api.service.HavenAfkService;
 import dev.invisiblespiders.haven.api.service.HavenPlayerService;
+import dev.invisiblespiders.haven.api.upgrade.HavenUpgradeService;
 import dev.invisiblespiders.haven.core.tab.TabManager;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.Component;
@@ -55,6 +56,7 @@ public class AfkManager implements HavenAfkService, Listener {
     private final ConcurrentHashMap<UUID, BukkitTask> actionBarTasks = new ConcurrentHashMap<>();
 
     private @Nullable BukkitTask schedulerTask;
+    private @Nullable HavenUpgradeService upgradeService;
 
     public AfkManager(AfkSettings settings, Plugin plugin, HavenPlayerService playerService) {
         this.settings = settings;
@@ -88,6 +90,16 @@ public class AfkManager implements HavenAfkService, Listener {
 
     public void setTabManager(@Nullable TabManager tabManager) {
         this.tabManager = tabManager;
+    }
+
+    public void setUpgradeService(@Nullable HavenUpgradeService upgradeService) {
+        this.upgradeService = upgradeService;
+    }
+
+    private long effectiveTimeout(UUID uuid) {
+        if (upgradeService == null) return settings.timeout();
+        int level = upgradeService.currentLevel(uuid, "afk-timer");
+        return settings.timeout() + settings.upgradeBonusSeconds(level);
     }
 
     public void recordActivity(Player player) {
@@ -211,7 +223,7 @@ public class AfkManager implements HavenAfkService, Listener {
             }
             long idleSeconds = (now - last) / 1000L;
 
-            if (!isAfk(uuid) && idleSeconds >= settings.timeout()) {
+            if (!isAfk(uuid) && idleSeconds >= effectiveTimeout(uuid)) {
                 markAfk(player);
             } else if (isAfk(uuid) && settings.kickTimeout() > 0 && idleSeconds >= settings.kickTimeout()) {
                 player.kick(MM.deserialize(settings.messages().kickReason()));
