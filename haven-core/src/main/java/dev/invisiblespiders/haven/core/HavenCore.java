@@ -54,6 +54,7 @@ import dev.invisiblespiders.haven.core.repository.CodexRepository;
 import dev.invisiblespiders.haven.core.repository.PlayerRepository;
 import dev.invisiblespiders.haven.core.repository.VirtualInventoryRepository;
 import dev.invisiblespiders.haven.core.reward.RewardRuntimeBootstrap;
+import dev.invisiblespiders.haven.core.upgrade.CoreUpgradeProvider;
 import dev.invisiblespiders.haven.core.upgrade.UpgradeRepository;
 import dev.invisiblespiders.haven.core.upgrade.UpgradeServiceImpl;
 import dev.invisiblespiders.haven.core.service.*;
@@ -164,6 +165,8 @@ public class HavenCore extends JavaPlugin {
         UpgradeServiceImpl upgradeService = new UpgradeServiceImpl(upgradeRepository);
         UpgradeDialog upgradeDialog = new UpgradeDialog(configManager, upgradeService);
         upgradeService.setDialog(upgradeDialog);
+        CoreUpgradeProvider coreProvider = new CoreUpgradeProvider(configManager.getUpgrades(), economyService);
+        upgradeService.registerProvider(coreProvider);
 
         // Rewards
         HavenRewardService rewardService = RewardRuntimeBootstrap.register(
@@ -213,6 +216,7 @@ public class HavenCore extends JavaPlugin {
             afkManager = new AfkManager(afkSettings, this, playerService);
             getServer().getPluginManager().registerEvents(afkManager, this);
             afkManager.start();
+            afkManager.setUpgradeService(upgradeService);
             sm.register(HavenAfkService.class, afkManager, this, ServicePriority.Normal);
             getLogger().info("AFK detection enabled.");
         }
