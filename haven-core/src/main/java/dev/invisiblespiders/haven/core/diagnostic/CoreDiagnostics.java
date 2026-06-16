@@ -101,9 +101,13 @@ public class CoreDiagnostics {
         if (registered.isEmpty()) {
             return warn("hooks", "No optional hooks are registered.");
         }
-        long unavailable = registered.stream().filter(hook -> !hook.isAvailable()).count();
-        if (unavailable > 0) {
-            return warn("hooks", unavailable + " of " + registered.size() + " registered hooks are unavailable.");
+        List<String> unavailableIds = registered.stream()
+            .filter(hook -> !hook.isAvailable())
+            .map(HavenHook::getId)
+            .toList();
+        if (!unavailableIds.isEmpty()) {
+            return warn("hooks", unavailableIds.size() + " of " + registered.size()
+                + " registered hooks are unavailable: " + String.join(", ", unavailableIds));
         }
         return pass("hooks", registered.size() + " hooks are registered and available.");
     }

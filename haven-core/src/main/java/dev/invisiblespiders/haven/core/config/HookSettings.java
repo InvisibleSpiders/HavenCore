@@ -14,7 +14,7 @@ public record HookSettings(
             config.getBoolean("hooks.vaultunlocked.enabled", true),
             config.getBoolean("hooks.excellenteconomy.enabled", true),
             config.getBoolean("hooks.placeholderapi.enabled", true),
-            config.getBoolean("hooks.luckperms.enabled", false)
+            config.getBoolean("hooks.luckperms.enabled", true)
         );
     }
 }

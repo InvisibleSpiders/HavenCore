@@ -9,12 +9,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class HookSettingsTest {
 
     @Test
-    void defaultsCoreHooksOnAndUnimplementedLuckPermsOff() {
+    void defaultsAllHooksEnabled() {
         HookSettings settings = HookSettings.from(new YamlConfiguration());
 
         assertTrue(settings.vaultUnlockedEnabled());
         assertTrue(settings.placeholderApiEnabled());
-        assertFalse(settings.luckPermsEnabled());
+        assertTrue(settings.luckPermsEnabled());
     }
 
     @Test
