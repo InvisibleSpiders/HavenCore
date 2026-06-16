@@ -127,4 +127,10 @@ class CoreUpgradeProviderTest {
         CoreUpgradeProvider provider = new CoreUpgradeProvider(load(""), mock(HavenEconomyService.class));
         assertThat(provider.requirement("permission", java.util.Map.of("node", "some.permission"))).isPresent();
     }
+
+    @Test
+    void requirementFactoryReturnsEmptyForNegativeMoneyAmount() {
+        CoreUpgradeProvider provider = new CoreUpgradeProvider(load(""), mock(HavenEconomyService.class));
+        assertThat(provider.requirement("money", java.util.Map.of("amount", "-100"))).isEmpty();
+    }
 }

@@ -58,7 +58,7 @@ public final class CoreUpgradeProvider implements UpgradeProvider {
                 String raw = values.getOrDefault("amount", "0");
                 try {
                     yield Optional.of(new MoneyRequirement(economy, Double.parseDouble(raw)));
-                } catch (NumberFormatException e) {
+                } catch (IllegalArgumentException e) {
                     LOGGER.warning("CoreUpgradeProvider: invalid money amount '" + raw + "'; skipping requirement");
                     yield Optional.empty();
                 }
