@@ -34,7 +34,7 @@ public class SleepAdminCommand {
     private void handleSkip(CommandSender sender, String[] args) {
         World world = resolveWorld(sender, args, 1);
         if (world == null) return;
-        if (!sleepManager.isEligible(world)) {
+        if (!sleepManager.getSettings().worlds().contains(world.getName())) {
             sender.sendMessage(MM.deserialize(
                 "<red>'" + world.getName() + "' is not in the sleep module's world list."));
             return;
@@ -46,6 +46,11 @@ public class SleepAdminCommand {
     private void handleToggle(CommandSender sender, String[] args) {
         World world = resolveWorld(sender, args, 1);
         if (world == null) return;
+        if (!sleepManager.getSettings().worlds().contains(world.getName())) {
+            sender.sendMessage(MM.deserialize(
+                "<red>'" + world.getName() + "' is not in the sleep module's world list."));
+            return;
+        }
         boolean newState = sleepManager.toggle(world);
         sender.sendMessage(MM.deserialize(
             "<green>Sleep module in " + world.getName()
