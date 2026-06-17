@@ -4,6 +4,7 @@ import dev.invisiblespiders.haven.api.service.HavenHookRegistry;
 import dev.invisiblespiders.haven.api.service.HavenCodexService;
 import dev.invisiblespiders.haven.api.service.HavenDataSource;
 import dev.invisiblespiders.haven.api.service.HavenEconomyService;
+import dev.invisiblespiders.haven.api.service.HavenSleepService;
 import dev.invisiblespiders.haven.api.service.HavenStorageService;
 import dev.invisiblespiders.haven.api.model.ReloadResult;
 import dev.invisiblespiders.haven.api.service.HavenSuiteEntry;
@@ -225,6 +226,7 @@ class HavenCommandTest {
         when(services.load(HavenDataSource.class)).thenReturn(dataSource);
         when(services.load(HavenStorageService.class)).thenReturn(storage);
         when(services.load(HavenCodexService.class)).thenReturn(codex);
+        when(services.load(HavenSleepService.class)).thenReturn(mock(HavenSleepService.class));
 
         HavenCommand command = new HavenCommand(plugin, config, hooks, asyncExecutor, opToggleService);
 
@@ -358,6 +360,7 @@ class HavenCommandTest {
         when(config.getCodex()).thenReturn(new YamlConfiguration());
         when(config.getHooks()).thenReturn(new YamlConfiguration());
         when(config.getOpToggle()).thenReturn(new YamlConfiguration());
+        when(config.getSleep()).thenReturn(new YamlConfiguration());
     }
 
     private static Plugin mockPluginWithServices() {

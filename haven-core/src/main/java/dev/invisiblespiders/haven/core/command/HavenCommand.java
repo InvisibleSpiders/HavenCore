@@ -18,6 +18,8 @@ import dev.invisiblespiders.haven.core.diagnostic.DiagnosticResult;
 import dev.invisiblespiders.haven.core.diagnostic.DiagnosticSeverity;
 import dev.invisiblespiders.haven.core.hook.VaultUnlockedHook;
 import dev.invisiblespiders.haven.core.service.OpToggleService;
+import dev.invisiblespiders.haven.core.sleep.SleepAdminCommand;
+import org.jetbrains.annotations.Nullable;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -43,6 +45,7 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
     private final HavenSuiteRegistry suiteRegistry;
     private final UpgradeAdminCommand upgradeAdminCommand;
     private final RewardAdminCommand rewardAdminCommand;
+    private @Nullable SleepAdminCommand sleepAdminCommand;
 
     public HavenCommand(Plugin plugin, ConfigManager config, HavenHookRegistry hooks) {
         this(plugin, config, hooks, null, null);
@@ -75,6 +78,10 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
         this.suiteRegistry = suiteRegistry;
         this.upgradeAdminCommand = upgradeAdminCommand;
         this.rewardAdminCommand = rewardAdminCommand;
+    }
+
+    public void setSleepAdmin(SleepAdminCommand sleepAdminCommand) {
+        this.sleepAdminCommand = sleepAdminCommand;
     }
 
     @Override
@@ -150,8 +157,16 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
                     rewardAdminCommand.execute(sender, tail(args));
                 }
             }
+            case "sleep" -> {
+                if (!requirePermission(sender, "haven.admin.sleep")) return true;
+                if (sleepAdminCommand == null) {
+                    sender.sendMessage(MM.deserialize("<red>Sleep module is disabled."));
+                } else {
+                    sleepAdminCommand.execute(sender, tail(args));
+                }
+            }
             default -> sender.sendMessage(MM.deserialize(
-                "<gray>Usage: /haven [help|status|doctor|version|reload|toggleop|upgrades|rewards]"
+                "<gray>Usage: /haven [help|status|doctor|version|reload|toggleop|upgrades|rewards|sleep]"
             ));
         }
         return true;
@@ -375,6 +390,7 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(MM.deserialize("<gray>/haven toggleop <dark_gray>- <white>Toggle OP for configured UUID entries only <gray>(havencore.toggleop.<code>)"));
         sender.sendMessage(MM.deserialize("<gray>/haven upgrades <dark_gray>- <white>Manage player upgrades <gray>(haven.admin.upgrades)"));
         sender.sendMessage(MM.deserialize("<gray>/haven rewards <dark_gray>- <white>Manage player rewards <gray>(haven.admin.rewards)"));
+        sender.sendMessage(MM.deserialize("<gray>/haven sleep <dark_gray>- <white>Manage sleep module <gray>(haven.admin.sleep)"));
     }
 
     /** Returns a human-readable explanation of why a hook is or isn't available. */
@@ -417,6 +433,9 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
             if (rewardAdminCommand != null && sender.hasPermission("haven.admin.rewards")) {
                 subcommands.add("rewards");
             }
+            if (sleepAdminCommand != null && sender.hasPermission("haven.admin.sleep")) {
+                subcommands.add("sleep");
+            }
             String prefix = args[0].toLowerCase();
             return subcommands.stream()
                 .sorted()
@@ -428,6 +447,9 @@ public class HavenCommand implements CommandExecutor, TabCompleter {
         }
         if (args.length >= 2 && args[0].equalsIgnoreCase("rewards") && rewardAdminCommand != null) {
             return rewardAdminCommand.tabComplete(sender, tail(args));
+        }
+        if (args.length >= 2 && args[0].equalsIgnoreCase("sleep") && sleepAdminCommand != null) {
+            return sleepAdminCommand.tabComplete(sender, tail(args));
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("reload")
                 && sender.hasPermission("haven.admin.reload")) {

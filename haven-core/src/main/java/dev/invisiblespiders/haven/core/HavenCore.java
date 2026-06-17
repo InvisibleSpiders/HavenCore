@@ -3,6 +3,7 @@ package dev.invisiblespiders.haven.core;
 import com.zaxxer.hikari.HikariConfig;
 import dev.invisiblespiders.haven.api.reward.HavenRewardService;
 import dev.invisiblespiders.haven.api.service.*;
+import dev.invisiblespiders.haven.api.service.HavenSleepService;
 import dev.invisiblespiders.haven.api.service.HavenSuiteRegistry;
 import dev.invisiblespiders.haven.api.upgrade.HavenUpgradeService;
 import dev.invisiblespiders.haven.core.async.HavenAsyncExecutors;
@@ -30,6 +31,9 @@ import dev.invisiblespiders.haven.core.message.QuitMsgCommand;
 import dev.invisiblespiders.haven.core.command.CodexCommand;
 import dev.invisiblespiders.haven.core.command.HavenCommand;
 import dev.invisiblespiders.haven.core.command.RewardAdminCommand;
+import dev.invisiblespiders.haven.core.sleep.SleepAdminCommand;
+import dev.invisiblespiders.haven.core.sleep.SleepManager;
+import dev.invisiblespiders.haven.core.sleep.SleepSettings;
 import dev.invisiblespiders.haven.core.command.RewardsCommand;
 import dev.invisiblespiders.haven.core.command.UpgradeAdminCommand;
 import dev.invisiblespiders.haven.core.command.UpgradesCommand;
@@ -82,6 +86,7 @@ public class HavenCore extends JavaPlugin {
     private AfkManager afkManager;
     private TabManager tabManager;
     private MarketQueue marketQueue;
+    private SleepManager sleepManager;
 
     @Override
     public void onEnable() {
@@ -316,6 +321,24 @@ public class HavenCore extends JavaPlugin {
             afkManager.setMessageServiceDelegate(pms::getAfkMessage);
         }
 
+        // ── Sleep ─────────────────────────────────────────────────────────────
+        SleepAdminCommand sleepAdmin = null;
+        if (configManager.getMain().getBoolean("features.sleep", true)) {
+            SleepSettings sleepSettings = SleepSettings.from(configManager.getSleep());
+            sleepManager = new SleepManager(
+                sleepSettings,
+                afkManager,
+                eventBus,
+                this,
+                getLogger()
+            );
+            sleepManager.onEnable();
+            getServer().getPluginManager().registerEvents(sleepManager, this);
+            sm.register(HavenSleepService.class, sleepManager, this, ServicePriority.Normal);
+            sleepAdmin = new SleepAdminCommand(sleepManager, this);
+            getLogger().info("Sleep module enabled.");
+        }
+
         // Commands
         UpgradeAdminCommand upgradeAdmin = new UpgradeAdminCommand(
             configManager, upgradeService, name -> getServer().getOfflinePlayer(name)
@@ -327,6 +350,7 @@ public class HavenCore extends JavaPlugin {
             this, configManager, hookRegistry, asyncExecutor, opToggleService, suiteRegistry,
             upgradeAdmin, rewardAdmin
         );
+        if (sleepAdmin != null) cmd.setSleepAdmin(sleepAdmin);
         var havenCmd = getCommand("haven");
         if (havenCmd != null) {
             havenCmd.setExecutor(cmd);
@@ -354,6 +378,7 @@ public class HavenCore extends JavaPlugin {
         if (marketQueue != null) marketQueue.stop();
         if (tabManager != null) tabManager.stop();
         if (afkManager != null) afkManager.stop();
+        if (sleepManager != null) sleepManager.onDisable();
 
         // Disable hooks first (before unregistering services)
         if (hookRegistry != null) hookRegistry.disableAll();
