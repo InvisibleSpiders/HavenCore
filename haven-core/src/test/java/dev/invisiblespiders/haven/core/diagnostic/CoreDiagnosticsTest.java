@@ -4,6 +4,7 @@ import dev.invisiblespiders.haven.api.service.HavenCodexService;
 import dev.invisiblespiders.haven.api.service.HavenDataSource;
 import dev.invisiblespiders.haven.api.service.HavenEconomyService;
 import dev.invisiblespiders.haven.api.service.HavenHookRegistry;
+import dev.invisiblespiders.haven.api.service.HavenSleepService;
 import dev.invisiblespiders.haven.api.service.HavenStorageService;
 import dev.invisiblespiders.haven.core.config.ConfigManager;
 import dev.invisiblespiders.haven.core.service.OpToggleService;
@@ -63,6 +64,7 @@ class CoreDiagnosticsTest {
         when(services.load(HavenDataSource.class)).thenReturn(dataSource);
         when(services.load(HavenStorageService.class)).thenReturn(mock(HavenStorageService.class));
         when(services.load(HavenCodexService.class)).thenReturn(mock(HavenCodexService.class));
+        when(services.load(HavenSleepService.class)).thenReturn(mock(HavenSleepService.class));
         ExecutorService asyncExecutor = mock(ExecutorService.class);
         OpToggleService opToggleService = mock(OpToggleService.class);
 
@@ -90,6 +92,7 @@ class CoreDiagnosticsTest {
         when(config.getCodex()).thenReturn(new YamlConfiguration());
         when(config.getHooks()).thenReturn(new YamlConfiguration());
         when(config.getOpToggle()).thenReturn(new YamlConfiguration());
+        when(config.getSleep()).thenReturn(new YamlConfiguration());
         return config;
     }
 

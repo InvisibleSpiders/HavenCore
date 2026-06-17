@@ -3,6 +3,7 @@ package dev.invisiblespiders.haven.core.diagnostic;
 import dev.invisiblespiders.haven.api.hook.HavenHook;
 import dev.invisiblespiders.haven.api.service.HavenCodexService;
 import dev.invisiblespiders.haven.api.service.HavenDataSource;
+import dev.invisiblespiders.haven.api.service.HavenSleepService;
 import dev.invisiblespiders.haven.api.service.HavenEconomyService;
 import dev.invisiblespiders.haven.api.service.HavenHookRegistry;
 import dev.invisiblespiders.haven.api.service.HavenStorageService;
@@ -45,6 +46,9 @@ public class CoreDiagnostics {
         results.add(checkEconomy(services));
         results.add(checkRegisteredService(services, HavenStorageService.class, "storage"));
         results.add(checkRegisteredService(services, HavenCodexService.class, "codex"));
+        if (config.getMain() != null && config.getMain().getBoolean("features.sleep", true)) {
+            results.add(checkRegisteredService(services, HavenSleepService.class, "sleep"));
+        }
         results.add(checkOpToggle());
         return results;
     }
@@ -59,6 +63,7 @@ public class CoreDiagnostics {
         if (config.getCodex() == null) missing.add("codex.yml");
         if (config.getHooks() == null) missing.add("hooks.yml");
         if (config.getOpToggle() == null) missing.add("op-toggle.yml");
+        if (config.getSleep() == null) missing.add("sleep.yml");
         if (!missing.isEmpty()) {
             return fail("config", "Missing loaded config sections: " + String.join(", ", missing));
         }
