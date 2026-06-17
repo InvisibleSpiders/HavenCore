@@ -8,6 +8,12 @@ ui:
     confirm: "<green>Confirm Purchase"
     cancel: "<red>Cancel"
     maxed: "<gray>Maxed"
+  layout:
+    show-headers: true
+    category-header: "<yellow>{icon} <gold><bold>{name}</bold> Upgrades"
+    button-label: "{category} <white>{level}"
+    tooltip: "{provider} / {id}{status}"
+    tooltip-cost: "\n<gray>Cost: {requirements}"
 
 # Personal upgrades — registered by CoreUpgradeProvider.
 personal:
