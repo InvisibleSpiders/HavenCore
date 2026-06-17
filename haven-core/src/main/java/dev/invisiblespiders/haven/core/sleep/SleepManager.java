@@ -281,6 +281,7 @@ public class SleepManager implements HavenSleepService, Listener {
         if (!isEligible(world)) return;
         long time = world.getTime();
         if (time < 12541L || time >= DAWN_TICK) return;
+        if (worldStates.getOrDefault(world.getName(), State.IDLE) == State.SKIPPING) return;
         skippedWith.computeIfAbsent(world.getName(), k -> ConcurrentHashMap.newKeySet())
             .addAll(sleepingPlayers.getOrDefault(world.getName(), Set.of()));
         worldStates.put(world.getName(), State.SKIPPING);
