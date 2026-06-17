@@ -48,11 +48,6 @@ public class UpgradeDialog {
         Map<String, UpgradeProvider> providers = upgrades.providers().stream()
                 .collect(Collectors.toMap(UpgradeProvider::id, Function.identity(), (a, b) -> a));
 
-        Map<UpgradeCategory, List<UpgradeDefinition>> grouped = new LinkedHashMap<>();
-        for (UpgradeDefinition definition : definitions) {
-            grouped.computeIfAbsent(definition.category(), k -> new ArrayList<>()).add(definition);
-        }
-
         List<ActionButton> buttons = definitions.stream()
                 .map(definition -> buttonFor(player, request, definition, providers.get(definition.providerId())))
                 .toList();
@@ -63,10 +58,8 @@ public class UpgradeDialog {
         } else {
             body.add(DialogBody.plainMessage(Component.text(
                     definitions.size() + " upgrade(s) available", NamedTextColor.GRAY)));
-            for (UpgradeCategory category : grouped.keySet()) {
-                body.add(DialogBody.plainMessage(Component.empty())); // Line break before category
-                body.add(DialogBody.plainMessage(CoreText.deserialize(
-                        "<yellow>" + category.icon() + " <gold><bold>" + category.displayName() + "</bold> Upgrades")));
+            for (Component sectionLine : categorySectionLines(definitions)) {
+                body.add(DialogBody.plainMessage(sectionLine));
             }
         }
 
@@ -85,6 +78,22 @@ public class UpgradeDialog {
                         .build())
                 .type(DialogType.multiAction(buttons, close, 2)));
         player.showDialog(dialog);
+    }
+
+    static List<Component> categorySectionLines(List<UpgradeDefinition> definitions) {
+        Map<UpgradeCategory, List<UpgradeDefinition>> grouped = new LinkedHashMap<>();
+        definitions.stream()
+                .sorted(Comparator
+                        .comparingInt((UpgradeDefinition definition) -> definition.category().sortOrder())
+                        .thenComparing(definition -> definition.category().displayName())
+                        .thenComparing(UpgradeDefinition::id))
+                .forEach(definition -> grouped.computeIfAbsent(definition.category(), k -> new ArrayList<>()).add(definition));
+        return grouped.keySet().stream()
+                .map(category -> CoreText.deserialize(
+                        "<dark_gray>---------- <gold><bold>"
+                                + category.displayName()
+                                + " Upgrades</bold> <dark_gray>----------"))
+                .toList();
     }
 
     private List<UpgradeDefinition> visibleDefinitions(Player player, UpgradeViewRequest request) {
