@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.Mockito.mock;
@@ -50,5 +51,46 @@ class UpgradeDialogTest {
         assertFalse(result.succeeded());
         assertEquals("stale-upgrade-dialog", result.code());
         verify(upgrades, never()).purchase(player, "test:slots", UpgradeScope.PLAYER);
+    }
+
+    @Test
+    void bodyLayoutEntriesInterleaveCategoryHeadersWithTheirUpgrades() {
+        UpgradeCategory bank = new UpgradeCategory("bank", "Bank", "EMERALD", 20);
+        UpgradeCategory claims = new UpgradeCategory("claims", "Claims", "GRASS_BLOCK", 40);
+        UpgradeCategory personal = new UpgradeCategory("personal", "Personal", "CLOCK", 10);
+        List<UpgradeDefinition> definitions = List.of(
+                definition("test:claim-limit", claims),
+                definition("test:afk-timer", personal),
+                definition("test:bank-cap", bank),
+                definition("test:home-slots", personal)
+        );
+
+        List<String> entries = UpgradeDialog.bodyLayoutEntries(definitions, true).stream()
+                .map(entry -> entry.header()
+                        ? "header:" + entry.category().displayName()
+                        : "upgrade:" + entry.definition().id())
+                .toList();
+
+        assertThat(entries).containsExactly(
+                "header:Personal",
+                "upgrade:test:afk-timer",
+                "upgrade:test:home-slots",
+                "header:Bank",
+                "upgrade:test:bank-cap",
+                "header:Claims",
+                "upgrade:test:claim-limit"
+        );
+    }
+
+    private static UpgradeDefinition definition(String id, UpgradeCategory category) {
+        return new UpgradeDefinition(
+                id,
+                "test",
+                category,
+                UpgradeScope.PLAYER,
+                UpgradeVisibility.VISIBLE,
+                null,
+                List.of(new UpgradeLevel(1, "Level 1", List.of(), List.of(), Map.of()))
+        );
     }
 }
