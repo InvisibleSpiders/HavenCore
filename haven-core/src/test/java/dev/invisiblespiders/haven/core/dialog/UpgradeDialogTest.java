@@ -54,7 +54,7 @@ class UpgradeDialogTest {
     }
 
     @Test
-    void buttonLayoutEntriesInterleaveCategoryHeadersWithTheirUpgrades() {
+    void bodyLayoutEntriesInterleaveCategoryHeadersWithTheirUpgrades() {
         UpgradeCategory bank = new UpgradeCategory("bank", "Bank", "EMERALD", 20);
         UpgradeCategory claims = new UpgradeCategory("claims", "Claims", "GRASS_BLOCK", 40);
         UpgradeCategory personal = new UpgradeCategory("personal", "Personal", "CLOCK", 10);
@@ -65,7 +65,7 @@ class UpgradeDialogTest {
                 definition("test:home-slots", personal)
         );
 
-        List<String> entries = UpgradeDialog.buttonLayoutEntries(definitions, true).stream()
+        List<String> entries = UpgradeDialog.bodyLayoutEntries(definitions, true).stream()
                 .map(entry -> entry.header()
                         ? "header:" + entry.category().displayName()
                         : "upgrade:" + entry.definition().id())
