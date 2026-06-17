@@ -10,7 +10,8 @@ ui:
     maxed: "<gray>Maxed"
   layout:
     show-headers: true
-    category-header: "<yellow>{icon} <gold><bold>{name}</bold> Upgrades"
+    category-header: "=== {name} ==="
+    category-spacer: "====================="
     button-label: "{category} <white>{level}"
     tooltip: "{provider} / {id}{status}"
     tooltip-cost: "\n<gray>Cost: {requirements}"

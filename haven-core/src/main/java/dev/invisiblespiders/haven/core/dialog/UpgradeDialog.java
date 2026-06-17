@@ -73,6 +73,8 @@ public class UpgradeDialog {
                 }
 
                 buttons.add(categoryHeaderButton(category));
+                buttons.add(spacerButton());
+                colOffset = 0;
 
                 for (UpgradeDefinition definition : categoryDefs) {
                     buttons.add(buttonFor(player, request, definition, providers.get(definition.providerId())));
@@ -135,7 +137,10 @@ public class UpgradeDialog {
         boolean maxed = nextLevel.isEmpty();
         boolean locked = definition.visibility() == UpgradeVisibility.LOCKED;
 
-        String buttonFormat = config.getUpgrades().getString("ui.layout.button-label", "{category} <white>{level}");
+        String buttonFormat = config.getUpgrades().getString("ui.layout.button-label");
+        if (buttonFormat == null || buttonFormat.isBlank()) {
+            buttonFormat = "{category} <white>{level}";
+        }
         String labelPrefix = maxed
                 ? CoreText.configString(config.getUpgrades(), "ui.buttons.maxed", "<gray>Maxed")
                 : definition.category().displayName();
@@ -151,7 +156,10 @@ public class UpgradeDialog {
         String providerName = provider == null ? definition.providerId() : provider.displayName();
         String status = locked ? " (locked)" : maxed ? " (maxed)" : "";
 
-        String tooltipFormat = config.getUpgrades().getString("ui.layout.tooltip", "{provider} / {id}{status}");
+        String tooltipFormat = config.getUpgrades().getString("ui.layout.tooltip");
+        if (tooltipFormat == null || tooltipFormat.isBlank()) {
+            tooltipFormat = "{provider} / {id}{status}";
+        }
         String tooltipText = tooltipFormat
                 .replace("{provider}", providerName)
                 .replace("{id}", definition.id())
@@ -161,7 +169,10 @@ public class UpgradeDialog {
         if (!maxed && nextLevel.isPresent()) {
             List<UpgradeRequirement> requirements = nextLevel.get().requirements();
             if (!requirements.isEmpty()) {
-                String costFormat = config.getUpgrades().getString("ui.layout.tooltip-cost", "\n<gray>Cost: {requirements}");
+                String costFormat = config.getUpgrades().getString("ui.layout.tooltip-cost");
+                if (costFormat == null || costFormat.isBlank()) {
+                    costFormat = "\n<gray>Cost: {requirements}";
+                }
                 Component costPrefix = CoreText.deserialize(costFormat.replace("{requirements}", ""));
                 tooltip = tooltip.append(costPrefix);
                 for (int i = 0; i < requirements.size(); i++) {
@@ -186,16 +197,24 @@ public class UpgradeDialog {
     }
 
     private ActionButton categoryHeaderButton(UpgradeCategory category) {
-        String headerFormat = config.getUpgrades().getString("ui.layout.category-header", "<yellow>{icon} <gold><bold>{name}</bold> Upgrades");
+        String headerFormat = config.getUpgrades().getString("ui.layout.category-header");
+        if (headerFormat == null || headerFormat.isBlank()) {
+            headerFormat = "=== {name} ===";
+        }
         String headerText = headerFormat
                 .replace("{icon}", category.icon())
                 .replace("{name}", category.displayName());
         Component label = CoreText.deserialize(headerText);
-        return ActionButton.builder(label).width(2).build();
+        return ActionButton.builder(label).build();
     }
 
     private ActionButton spacerButton() {
-        return ActionButton.builder(Component.empty()).width(1).build();
+        String spacerFormat = config.getUpgrades().getString("ui.layout.category-spacer");
+        if (spacerFormat == null || spacerFormat.isBlank()) {
+            spacerFormat = "=====================";
+        }
+        Component label = CoreText.deserialize(spacerFormat);
+        return ActionButton.builder(label).build();
     }
 
 
