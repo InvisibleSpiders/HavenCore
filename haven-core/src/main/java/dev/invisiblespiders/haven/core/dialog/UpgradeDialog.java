@@ -53,27 +53,22 @@ public class UpgradeDialog {
             grouped.computeIfAbsent(definition.category(), k -> new ArrayList<>()).add(definition);
         }
 
-        List<ActionButton> buttons = new ArrayList<>();
-        for (Map.Entry<UpgradeCategory, List<UpgradeDefinition>> entry : grouped.entrySet()) {
-            UpgradeCategory category = entry.getKey();
-            List<UpgradeDefinition> categoryDefs = entry.getValue();
+        List<ActionButton> buttons = definitions.stream()
+                .map(definition -> buttonFor(player, request, definition, providers.get(definition.providerId())))
+                .toList();
 
-            if (!buttons.isEmpty() && buttons.size() % 2 != 0) {
-                buttons.add(spacerButton());
-            }
-
-            buttons.add(categoryHeaderButton(category));
-            buttons.add(spacerButton());
-
-            for (UpgradeDefinition definition : categoryDefs) {
-                buttons.add(buttonFor(player, request, definition, providers.get(definition.providerId())));
+        List<DialogBody> body = new ArrayList<>();
+        if (definitions.isEmpty()) {
+            body.add(DialogBody.plainMessage(Component.text("No upgrades available.", NamedTextColor.GRAY)));
+        } else {
+            body.add(DialogBody.plainMessage(Component.text(
+                    definitions.size() + " upgrade(s) available", NamedTextColor.GRAY)));
+            for (UpgradeCategory category : grouped.keySet()) {
+                body.add(DialogBody.plainMessage(Component.empty())); // Line break before category
+                body.add(DialogBody.plainMessage(CoreText.deserialize(
+                        "<yellow>" + category.icon() + " <gold><bold>" + category.displayName() + "</bold> Upgrades")));
             }
         }
-
-        List<DialogBody> body = definitions.isEmpty()
-                ? List.of(DialogBody.plainMessage(Component.text("No upgrades available.", NamedTextColor.GRAY)))
-                : List.of(DialogBody.plainMessage(Component.text(
-                        definitions.size() + " upgrade(s) available", NamedTextColor.GRAY)));
 
         ActionButton close = ActionButton.builder(Component.text("Close"))
                 .action(DialogAction.customClick((view, audience) -> {
@@ -159,14 +154,6 @@ public class UpgradeDialog {
         return builder.build();
     }
 
-    private ActionButton categoryHeaderButton(UpgradeCategory category) {
-        Component label = CoreText.deserialize("<yellow>" + category.icon() + " <gold><bold>" + category.displayName() + "</bold> Upgrades");
-        return ActionButton.builder(label).build();
-    }
-
-    private ActionButton spacerButton() {
-        return ActionButton.builder(Component.empty()).build();
-    }
 
     private void openConfirm(Player player, UpgradeViewRequest request, UpgradeDefinition definition,
                              int expectedCurrentLevel, String levelName) {
