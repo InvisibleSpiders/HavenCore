@@ -3,6 +3,8 @@ package dev.invisiblespiders.haven.core.upgrade;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeContext;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeRequirement;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeRequirementResult;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -81,5 +83,22 @@ public final class ItemRequirement implements UpgradeRequirement {
             throw new IllegalStateException("online player is required");
         }
         return context.purchaser();
+    }
+
+    @Override
+    public Component describe() {
+        return Component.text(amount + "x " + formatMaterialName(material), NamedTextColor.YELLOW);
+    }
+
+    private String formatMaterialName(Material material) {
+        String name = material.name().replace('_', ' ').toLowerCase();
+        String[] words = name.split(" ");
+        StringBuilder sb = new StringBuilder();
+        for (String word : words) {
+            if (!word.isEmpty()) {
+                sb.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1)).append(" ");
+            }
+        }
+        return sb.toString().trim();
     }
 }

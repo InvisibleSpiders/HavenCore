@@ -1,10 +1,12 @@
 package dev.invisiblespiders.haven.core.dialog;
 
 import dev.invisiblespiders.haven.api.upgrade.HavenUpgradeService;
+import dev.invisiblespiders.haven.api.upgrade.UpgradeCategory;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeDefinition;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeLevel;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeProvider;
 import dev.invisiblespiders.haven.api.upgrade.UpgradePurchaseResult;
+import dev.invisiblespiders.haven.api.upgrade.UpgradeRequirement;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeViewRequest;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeVisibility;
 import dev.invisiblespiders.haven.core.config.ConfigManager;
@@ -21,7 +23,9 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -44,9 +48,27 @@ public class UpgradeDialog {
         Map<String, UpgradeProvider> providers = upgrades.providers().stream()
                 .collect(Collectors.toMap(UpgradeProvider::id, Function.identity(), (a, b) -> a));
 
-        List<ActionButton> buttons = definitions.stream()
-                .map(definition -> buttonFor(player, request, definition, providers.get(definition.providerId())))
-                .toList();
+        Map<UpgradeCategory, List<UpgradeDefinition>> grouped = new LinkedHashMap<>();
+        for (UpgradeDefinition definition : definitions) {
+            grouped.computeIfAbsent(definition.category(), k -> new ArrayList<>()).add(definition);
+        }
+
+        List<ActionButton> buttons = new ArrayList<>();
+        for (Map.Entry<UpgradeCategory, List<UpgradeDefinition>> entry : grouped.entrySet()) {
+            UpgradeCategory category = entry.getKey();
+            List<UpgradeDefinition> categoryDefs = entry.getValue();
+
+            if (!buttons.isEmpty() && buttons.size() % 2 != 0) {
+                buttons.add(spacerButton());
+            }
+
+            buttons.add(categoryHeaderButton(category));
+            buttons.add(spacerButton());
+
+            for (UpgradeDefinition definition : categoryDefs) {
+                buttons.add(buttonFor(player, request, definition, providers.get(definition.providerId())));
+            }
+        }
 
         List<DialogBody> body = definitions.isEmpty()
                 ? List.of(DialogBody.plainMessage(Component.text("No upgrades available.", NamedTextColor.GRAY)))
@@ -111,6 +133,20 @@ public class UpgradeDialog {
         Component tooltip = Component.text(providerName + " / " + definition.id()
                 + (locked ? " (locked)" : maxed ? " (maxed)" : ""));
 
+        if (!maxed && nextLevel.isPresent()) {
+            List<UpgradeRequirement> requirements = nextLevel.get().requirements();
+            if (!requirements.isEmpty()) {
+                tooltip = tooltip.append(Component.newline())
+                        .append(Component.text("Cost: ", NamedTextColor.GRAY));
+                for (int i = 0; i < requirements.size(); i++) {
+                    if (i > 0) {
+                        tooltip = tooltip.append(Component.text(", ", NamedTextColor.GRAY));
+                    }
+                    tooltip = tooltip.append(requirements.get(i).describe());
+                }
+            }
+        }
+
         ActionButton.Builder builder = ActionButton.builder(label).tooltip(tooltip);
         if (!locked && !maxed) {
             builder.action(DialogAction.customClick((view, audience) -> {
@@ -121,6 +157,15 @@ public class UpgradeDialog {
             }, multiUseOpts()));
         }
         return builder.build();
+    }
+
+    private ActionButton categoryHeaderButton(UpgradeCategory category) {
+        Component label = CoreText.deserialize("<yellow>" + category.icon() + " <gold><bold>" + category.displayName() + "</bold> Upgrades");
+        return ActionButton.builder(label).build();
+    }
+
+    private ActionButton spacerButton() {
+        return ActionButton.builder(Component.empty()).build();
     }
 
     private void openConfirm(Player player, UpgradeViewRequest request, UpgradeDefinition definition,

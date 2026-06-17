@@ -3,6 +3,8 @@ package dev.invisiblespiders.haven.core.upgrade;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeContext;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeRequirement;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeRequirementResult;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 
 public final class ExpRequirement implements UpgradeRequirement {
@@ -49,5 +51,10 @@ public final class ExpRequirement implements UpgradeRequirement {
             throw new IllegalStateException("online player is required");
         }
         return context.purchaser();
+    }
+
+    @Override
+    public Component describe() {
+        return Component.text(levels + " XP Level" + (levels > 1 ? "s" : ""), NamedTextColor.GREEN);
     }
 }

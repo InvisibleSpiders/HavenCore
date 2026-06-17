@@ -3,6 +3,8 @@ package dev.invisiblespiders.haven.core.upgrade;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeContext;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeRequirement;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeRequirementResult;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 
 import java.util.Objects;
 
@@ -35,5 +37,10 @@ public final class PermissionRequirement implements UpgradeRequirement {
 
     @Override
     public void refund(UpgradeContext context) {
+    }
+
+    @Override
+    public Component describe() {
+        return Component.text("Requires " + permission, NamedTextColor.RED);
     }
 }
