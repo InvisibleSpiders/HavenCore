@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -290,6 +291,75 @@ class SleepManagerTest {
         manager.reevaluate(world); // back to SKIPPING
 
         assertThat(manager.getState(world)).isEqualTo(SleepManager.State.SKIPPING);
+    }
+
+    // ── Skip completion ───────────────────────────────────────────────────────
+
+    @Test
+    void completeSkip_setsTimeTo0AndTransitionsToIdle() {
+        when(world.getPlayers()).thenReturn(List.of());
+        manager.worldStates.put("world", SleepManager.State.SKIPPING);
+
+        manager.completeSkip(world);
+
+        verify(world).setTime(0L);
+        assertThat(manager.getState(world)).isEqualTo(SleepManager.State.IDLE);
+    }
+
+    @Test
+    void completeSkip_resetsInsomniaOnlyForSleepers() {
+        UUID sleptUuid  = UUID.randomUUID();
+        UUID awakeUuid  = UUID.randomUUID();
+
+        when(player1.getUniqueId()).thenReturn(sleptUuid);
+        when(player2.getUniqueId()).thenReturn(awakeUuid);
+        when(player1.isSleeping()).thenReturn(false);
+        when(player2.isSleeping()).thenReturn(false);
+        when(world.getPlayers()).thenReturn(List.of(player1, player2));
+
+        manager.worldStates.put("world", SleepManager.State.SKIPPING);
+        manager.skippedWith.put("world", new java.util.HashSet<>(Set.of(sleptUuid)));
+
+        manager.completeSkip(world);
+
+        verify(player1).setStatistic(org.bukkit.Statistic.TIME_SINCE_REST, 0);
+        verify(player2, never()).setStatistic(any(), anyInt());
+    }
+
+    @Test
+    void completeSkip_ejectsPlayersStillInBed() {
+        when(world.getPlayers()).thenReturn(List.of(player1, player2));
+        when(player1.isSleeping()).thenReturn(true);
+        when(player2.isSleeping()).thenReturn(false);
+
+        manager.worldStates.put("world", SleepManager.State.SKIPPING);
+
+        manager.completeSkip(world);
+
+        verify(player1).wakeup(false);
+        verify(player2, never()).wakeup(anyBoolean());
+    }
+
+    @Test
+    void completeSkip_publishesCompleteEvent() {
+        when(world.getPlayers()).thenReturn(List.of());
+        manager.worldStates.put("world", SleepManager.State.SKIPPING);
+
+        manager.completeSkip(world);
+
+        verify(eventBus).publish(any(dev.invisiblespiders.haven.api.event.HavenSleepSkipCompleteEvent.class));
+    }
+
+    @Test
+    void completeSkip_clearsSleepingPlayersSet() {
+        UUID uuid = UUID.randomUUID();
+        when(world.getPlayers()).thenReturn(List.of());
+        manager.worldStates.put("world", SleepManager.State.SKIPPING);
+        manager.sleepingPlayers.get("world").add(uuid);
+
+        manager.completeSkip(world);
+
+        assertThat(manager.sleepingPlayers.get("world")).isEmpty();
     }
 
     // Helper

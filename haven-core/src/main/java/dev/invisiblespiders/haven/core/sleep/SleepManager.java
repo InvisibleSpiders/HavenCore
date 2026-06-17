@@ -36,7 +36,7 @@ public class SleepManager implements HavenSleepService, Listener {
 
     // Keyed by world name for safe map lookup without holding World references.
     final Map<String, Set<UUID>> sleepingPlayers = new ConcurrentHashMap<>();
-    private final Map<String, Set<UUID>> skippedWith = new ConcurrentHashMap<>();
+    final Map<String, Set<UUID>> skippedWith = new ConcurrentHashMap<>();
     final Map<String, State> worldStates = new ConcurrentHashMap<>();
     private final Map<String, Boolean> runtimeEnabled = new ConcurrentHashMap<>();
     private final Map<String, Integer> originalSleepingPercentage = new ConcurrentHashMap<>();
@@ -237,15 +237,71 @@ public class SleepManager implements HavenSleepService, Listener {
         reevaluate(world);
     }
 
-    // ── Placeholder stubs (filled in Tasks 6–7) ───────────────────────────────
+    // ── Skip advancement ──────────────────────────────────────────────────────
 
-    private void tickWorld(World world) { /* Task 6 */ }
+    private void tickWorld(World world) {
+        long current = world.getTime();
+        if (current < 12541L || current >= DAWN_TICK) {
+            completeSkip(world);
+            return;
+        }
+        long next = current + computeSpeed(world);
+        if (next >= DAWN_TICK) {
+            completeSkip(world);
+        } else {
+            world.setTime(next);
+            sendActionBarToWorld(world);
+        }
+    }
 
-    void completeSkip(World world) { /* Task 6 */ }
+    void completeSkip(World world) {
+        world.setTime(0L);
 
-    public void forceSkip(World world) { /* Task 6 */ }
+        Set<UUID> slept = skippedWith.getOrDefault(world.getName(), Collections.emptySet());
+        for (Player p : world.getPlayers()) {
+            UUID uid = p.getUniqueId();
+            if (uid != null && slept.contains(uid)) {
+                p.setStatistic(org.bukkit.Statistic.TIME_SINCE_REST, 0);
+            }
+            if (p.isSleeping()) {
+                p.wakeup(false);
+            }
+        }
 
-    public boolean toggle(World world) { return true; /* Task 6 */ }
+        worldStates.put(world.getName(), State.IDLE);
+        sleepingPlayers.getOrDefault(world.getName(), Set.of()).clear();
+        skippedWith.remove(world.getName());
+        stopTickIfNotNeeded();
+        eventBus.publish(new HavenSleepSkipCompleteEvent(world));
+        sendActionBarToWorld(world);
+        broadcastToWorld(world, settings.messages().broadcastSkip());
+    }
+
+    public void forceSkip(World world) {
+        if (!isEligible(world)) return;
+        long time = world.getTime();
+        if (time < 12541L || time >= DAWN_TICK) return;
+        skippedWith.computeIfAbsent(world.getName(), k -> ConcurrentHashMap.newKeySet())
+            .addAll(sleepingPlayers.getOrDefault(world.getName(), Set.of()));
+        worldStates.put(world.getName(), State.SKIPPING);
+        int sleeping = getSleepingCount(world);
+        int active   = countActive(world);
+        eventBus.publish(new HavenSleepSkipStartEvent(world, sleeping, active));
+        broadcastToWorld(world, settings.messages().skipStart());
+        ensureTickRunning();
+    }
+
+    public boolean toggle(World world) {
+        boolean current  = Boolean.TRUE.equals(runtimeEnabled.get(world.getName()));
+        boolean newState = !current;
+        runtimeEnabled.put(world.getName(), newState);
+        if (!newState) {
+            sleepingPlayers.getOrDefault(world.getName(), Set.of()).clear();
+            worldStates.put(world.getName(), State.IDLE);
+            stopTickIfNotNeeded();
+        }
+        return newState;
+    }
 
     void sendActionBarToWorld(World world) { /* Task 7 */ }
 
