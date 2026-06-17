@@ -1,6 +1,7 @@
 package dev.invisiblespiders.haven.core.hook;
 
 import dev.invisiblespiders.haven.api.hook.HavenHook;
+import dev.invisiblespiders.haven.api.hook.HavenHookStatus;
 import net.milkbowl.vault2.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
@@ -38,10 +39,21 @@ public class VaultUnlockedHook implements HavenHook, Listener {
     public void onEnable() {
         attemptLookup();
         Bukkit.getPluginManager().registerEvents(this, owner);
+        if (economy == null && isVaultPluginPresent()) {
+            logger.info("VaultUnlocked is installed but no Economy provider has registered yet."
+                + " Will connect automatically if one registers later.");
+        }
     }
 
     @Override
     public boolean isAvailable() { return economy != null; }
+
+    @Override
+    public HavenHookStatus getStatus() {
+        if (economy != null) return HavenHookStatus.AVAILABLE;
+        if (isVaultPluginPresent()) return HavenHookStatus.MISCONFIGURED;
+        return HavenHookStatus.MISSING_PLUGIN;
+    }
 
     @Override
     public void onDisable() {

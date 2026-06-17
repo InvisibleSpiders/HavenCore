@@ -40,6 +40,26 @@ class VaultUnlockedHookTest {
     }
 
     @Test
+    void misconfiguredWhenVaultPresentButNoProvider() {
+        PluginManager pm = mock(PluginManager.class);
+        when(pm.getPlugin("Vault")).thenReturn(mock(org.bukkit.plugin.Plugin.class));
+
+        ServicesManager services = mock(ServicesManager.class);
+        when(services.getRegistration(Economy.class)).thenReturn(null);
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getServicesManager).thenReturn(services);
+            bukkit.when(Bukkit::getPluginManager).thenReturn(pm);
+
+            VaultUnlockedHook hook = createHook();
+            hook.onEnable();
+
+            assertFalse(hook.isAvailable());
+            assertEquals(HavenHookStatus.MISCONFIGURED, hook.getStatus());
+        }
+    }
+
+    @Test
     void availableWhenProviderRegisteredBeforeEnable() {
         Economy economy = mock(Economy.class);
         RegisteredServiceProvider<Economy> provider = mock();
