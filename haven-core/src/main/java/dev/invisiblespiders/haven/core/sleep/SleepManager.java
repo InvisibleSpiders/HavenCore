@@ -8,10 +8,12 @@ import dev.invisiblespiders.haven.api.service.HavenSleepService;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
+import org.bukkit.GameRule;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.Nullable;
 
@@ -37,6 +39,7 @@ public class SleepManager implements HavenSleepService, Listener {
     private final Map<String, Set<UUID>> skippedWith = new ConcurrentHashMap<>();
     final Map<String, State> worldStates = new ConcurrentHashMap<>();
     private final Map<String, Boolean> runtimeEnabled = new ConcurrentHashMap<>();
+    private final Map<String, Integer> originalSleepingPercentage = new ConcurrentHashMap<>();
 
     private @Nullable BukkitTask tickTask;
 
@@ -57,11 +60,23 @@ public class SleepManager implements HavenSleepService, Listener {
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     public void onEnable() {
-        // sleeping-ignored flag wired in Task 5 when tick loop starts
+        for (String name : settings.worlds()) {
+            World world = Bukkit.getWorld(name);
+            if (world == null) continue;
+            Integer original = world.getGameRuleValue(GameRule.PLAYERS_SLEEPING_PERCENTAGE);
+            originalSleepingPercentage.put(name, original != null ? original : 100);
+            world.setGameRule(GameRule.PLAYERS_SLEEPING_PERCENTAGE, 101);
+        }
     }
 
     public void onDisable() {
         if (tickTask != null) { tickTask.cancel(); tickTask = null; }
+        for (String name : settings.worlds()) {
+            World world = Bukkit.getWorld(name);
+            if (world == null) continue;
+            int original = originalSleepingPercentage.getOrDefault(name, 100);
+            world.setGameRule(GameRule.PLAYERS_SLEEPING_PERCENTAGE, original);
+        }
     }
 
     // ── HavenSleepService ─────────────────────────────────────────────────────
@@ -120,17 +135,109 @@ public class SleepManager implements HavenSleepService, Listener {
 
     SleepSettings getSettings() { return settings; }
 
-    // ── Placeholder stubs (filled in Tasks 5–7) ───────────────────────────────
+    // ── State machine ─────────────────────────────────────────────────────────
 
-    void reevaluate(World world) { /* Task 5 */ }
+    void reevaluate(World world) {
+        State current = worldStates.getOrDefault(world.getName(), State.IDLE);
+        boolean threshold = meetsThreshold(world);
+        int sleeping = getSleepingCount(world);
 
-    private void transitionToSkipping(World world) { /* Task 5 */ }
+        switch (current) {
+            case IDLE, WAITING -> {
+                if (threshold) {
+                    transitionToSkipping(world);
+                } else {
+                    worldStates.put(world.getName(), sleeping > 0 ? State.WAITING : State.IDLE);
+                    sendActionBarToWorld(world);
+                }
+            }
+            case SKIPPING -> {
+                if (!threshold) transitionToPaused(world);
+                // else BukkitRunnable continues ticking
+            }
+            case PAUSED -> {
+                if (threshold) {
+                    transitionToSkipping(world);
+                } else {
+                    sendActionBarToWorld(world);
+                }
+            }
+        }
+    }
 
-    private void transitionToPaused(World world) { /* Task 5 */ }
+    private void transitionToSkipping(World world) {
+        State previous = worldStates.put(world.getName(), State.SKIPPING);
+        if (previous == State.SKIPPING) return; // already skipping, no-op
+        int sleeping = getSleepingCount(world);
+        int active   = countActive(world);
+        skippedWith.computeIfAbsent(world.getName(), k -> ConcurrentHashMap.newKeySet())
+            .addAll(sleepingPlayers.getOrDefault(world.getName(), Set.of()));
+        eventBus.publish(new HavenSleepSkipStartEvent(world, sleeping, active));
+        broadcastToWorld(world, settings.messages().skipStart());
+        ensureTickRunning();
+    }
 
-    private void ensureTickRunning() { /* Task 5 */ }
+    private void transitionToPaused(World world) {
+        worldStates.put(world.getName(), State.PAUSED);
+        sendActionBarToWorld(world);
+        stopTickIfNotNeeded();
+    }
 
-    private void stopTickIfNotNeeded() { /* Task 5 */ }
+    private void ensureTickRunning() {
+        if (tickTask != null && !tickTask.isCancelled()) return;
+        tickTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
+            for (String name : settings.worlds()) {
+                if (worldStates.getOrDefault(name, State.IDLE) != State.SKIPPING) continue;
+                World w = Bukkit.getWorld(name);
+                if (w != null) tickWorld(w);
+            }
+        }, 0L, 1L);
+    }
+
+    private void stopTickIfNotNeeded() {
+        boolean anySkipping = worldStates.values().stream().anyMatch(s -> s == State.SKIPPING);
+        if (!anySkipping && tickTask != null) {
+            tickTask.cancel();
+            tickTask = null;
+        }
+    }
+
+    // ── Bukkit event handlers ─────────────────────────────────────────────────
+
+    @org.bukkit.event.EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST)
+    public void onBedEnter(org.bukkit.event.player.PlayerBedEnterEvent event) {
+        if (event.getBedEnterResult() != org.bukkit.event.player.PlayerBedEnterEvent.BedEnterResult.OK) return;
+        Player player = event.getPlayer();
+        World world   = player.getWorld();
+        if (!isEligible(world)) return;
+        long time = world.getTime();
+        if (time < 12541L || time >= DAWN_TICK) return; // not night
+
+        sleepingPlayers.get(world.getName()).add(player.getUniqueId());
+        reevaluate(world);
+    }
+
+    @org.bukkit.event.EventHandler(priority = org.bukkit.event.EventPriority.MONITOR)
+    public void onBedLeave(org.bukkit.event.player.PlayerBedLeaveEvent event) {
+        Player player = event.getPlayer();
+        World world   = player.getWorld();
+        if (!isEligible(world)) return;
+
+        sleepingPlayers.getOrDefault(world.getName(), Set.of()).remove(player.getUniqueId());
+        reevaluate(world);
+    }
+
+    @org.bukkit.event.EventHandler
+    public void onQuit(org.bukkit.event.player.PlayerQuitEvent event) {
+        Player player = event.getPlayer();
+        World world   = player.getWorld();
+        if (!isEligible(world)) return;
+
+        sleepingPlayers.getOrDefault(world.getName(), Set.of()).remove(player.getUniqueId());
+        reevaluate(world);
+    }
+
+    // ── Placeholder stubs (filled in Tasks 6–7) ───────────────────────────────
 
     private void tickWorld(World world) { /* Task 6 */ }
 

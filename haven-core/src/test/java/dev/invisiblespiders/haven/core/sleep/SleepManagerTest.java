@@ -8,6 +8,8 @@ import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitScheduler;
+import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +31,8 @@ class SleepManagerTest {
 
     @Mock Plugin plugin;
     @Mock Server server;
+    @Mock BukkitScheduler scheduler;
+    @Mock BukkitTask tickTask;
     @Mock HavenAfkService afkService;
     @Mock HavenEventBus eventBus;
     @Mock Logger logger;
@@ -43,6 +47,9 @@ class SleepManagerTest {
     void setup() {
         when(plugin.getServer()).thenReturn(server);
         when(plugin.getLogger()).thenReturn(logger);
+        when(server.getScheduler()).thenReturn(scheduler);
+        when(scheduler.runTaskTimer(any(Plugin.class), any(Runnable.class), anyLong(), anyLong()))
+            .thenReturn(tickTask);
         when(world.getName()).thenReturn("world");
         settings = SleepSettings.from(new YamlConfiguration()); // min-count=1, min-percent=0, min=40, max=200
         manager = new SleepManager(settings, afkService, eventBus, plugin, logger);
@@ -198,6 +205,91 @@ class SleepManagerTest {
         World other = mock(World.class);
         when(other.getName()).thenReturn("world_nether");
         assertThat(manager.isEligible(other)).isFalse();
+    }
+
+    // ── State machine ─────────────────────────────────────────────────────────
+
+    @Test
+    void reevaluate_transitionsIdleToWaitingWhenSomeoneSleepsButBelowThreshold() {
+        // With min-count=1 any single sleeper meets threshold, so test with min-count=2
+        YamlConfiguration config = new YamlConfiguration();
+        config.set("threshold.min-count", 2);
+        SleepManager m = new SleepManager(SleepSettings.from(config), afkService, eventBus, plugin, logger);
+
+        UUID uuid1 = UUID.randomUUID();
+        UUID uuid2 = UUID.randomUUID();
+        when(world.getPlayers()).thenReturn(List.of(player1, player2));
+        setupSurvivalPlayer(player1, uuid1, false);
+        setupSurvivalPlayer(player2, uuid2, false);
+
+        m.sleepingPlayers.get("world").add(uuid1); // 1 sleeping, min-count=2 → WAITING
+        m.reevaluate(world);
+
+        assertThat(m.getState(world)).isEqualTo(SleepManager.State.WAITING);
+    }
+
+    @Test
+    void reevaluate_transitionsWaitingToIdleWhenNoOneSleeping() {
+        YamlConfiguration config = new YamlConfiguration();
+        config.set("threshold.min-count", 2);
+        SleepManager m = new SleepManager(SleepSettings.from(config), afkService, eventBus, plugin, logger);
+
+        when(world.getPlayers()).thenReturn(List.of(player1));
+        setupSurvivalPlayer(player1, UUID.randomUUID(), false);
+
+        // Nothing sleeping → IDLE
+        m.reevaluate(world);
+        assertThat(m.getState(world)).isEqualTo(SleepManager.State.IDLE);
+    }
+
+    @Test
+    void reevaluate_publishesStartEventWhenThresholdFirstMet() {
+        UUID uuid = UUID.randomUUID();
+        when(world.getPlayers()).thenReturn(List.of(player1));
+        setupSurvivalPlayer(player1, uuid, false);
+        when(world.getTime()).thenReturn(13000L); // night
+
+        manager.sleepingPlayers.get("world").add(uuid); // 1/1 = meets min-count=1
+        manager.reevaluate(world);
+
+        verify(eventBus).publish(any(dev.invisiblespiders.haven.api.event.HavenSleepSkipStartEvent.class));
+        assertThat(manager.getState(world)).isEqualTo(SleepManager.State.SKIPPING);
+    }
+
+    @Test
+    void reevaluate_transitionsSkippingToPausedWhenThresholdDrops() {
+        UUID uuid = UUID.randomUUID();
+        when(world.getPlayers()).thenReturn(List.of(player1));
+        setupSurvivalPlayer(player1, uuid, false);
+        when(world.getTime()).thenReturn(13000L);
+
+        // Enter skipping
+        manager.sleepingPlayers.get("world").add(uuid);
+        manager.reevaluate(world);
+        assertThat(manager.getState(world)).isEqualTo(SleepManager.State.SKIPPING);
+
+        // Player wakes — below threshold
+        manager.sleepingPlayers.get("world").remove(uuid);
+        manager.reevaluate(world);
+        assertThat(manager.getState(world)).isEqualTo(SleepManager.State.PAUSED);
+    }
+
+    @Test
+    void reevaluate_resumesFromPausedWhenThresholdMetAgain() {
+        UUID uuid = UUID.randomUUID();
+        when(world.getPlayers()).thenReturn(List.of(player1));
+        setupSurvivalPlayer(player1, uuid, false);
+        when(world.getTime()).thenReturn(13000L);
+
+        // Skip → Pause → Resume
+        manager.sleepingPlayers.get("world").add(uuid);
+        manager.reevaluate(world); // SKIPPING
+        manager.sleepingPlayers.get("world").remove(uuid);
+        manager.reevaluate(world); // PAUSED
+        manager.sleepingPlayers.get("world").add(uuid);
+        manager.reevaluate(world); // back to SKIPPING
+
+        assertThat(manager.getState(world)).isEqualTo(SleepManager.State.SKIPPING);
     }
 
     // Helper
