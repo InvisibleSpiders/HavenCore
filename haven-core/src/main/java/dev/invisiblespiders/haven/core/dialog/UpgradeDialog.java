@@ -48,6 +48,8 @@ public class UpgradeDialog {
         Map<String, UpgradeProvider> providers = upgrades.providers().stream()
                 .collect(Collectors.toMap(UpgradeProvider::id, Function.identity(), (a, b) -> a));
 
+        boolean showHeaders = config.getUpgrades().getBoolean("ui.layout.show-headers", true);
+
         List<ActionButton> buttons = definitions.stream()
                 .map(definition -> buttonFor(player, request, definition, providers.get(definition.providerId())))
                 .toList();
@@ -58,8 +60,14 @@ public class UpgradeDialog {
         } else {
             body.add(DialogBody.plainMessage(Component.text(
                     definitions.size() + " upgrade(s) available", NamedTextColor.GRAY)));
-            for (Component sectionLine : categorySectionLines(definitions)) {
-                body.add(DialogBody.plainMessage(sectionLine));
+            if (showHeaders) {
+                String headerFormat = config.getUpgrades().getString("ui.layout.category-header");
+                if (headerFormat == null || headerFormat.isBlank()) {
+                    headerFormat = "<dark_gray>---------- <gold><bold>{name} Upgrades</bold> <dark_gray>----------";
+                }
+                for (Component sectionLine : categorySectionLines(definitions, headerFormat)) {
+                    body.add(DialogBody.plainMessage(sectionLine));
+                }
             }
         }
 
@@ -81,6 +89,10 @@ public class UpgradeDialog {
     }
 
     static List<Component> categorySectionLines(List<UpgradeDefinition> definitions) {
+        return categorySectionLines(definitions, "<dark_gray>---------- <gold><bold>{name} Upgrades</bold> <dark_gray>----------");
+    }
+
+    static List<Component> categorySectionLines(List<UpgradeDefinition> definitions, String headerFormat) {
         Map<UpgradeCategory, List<UpgradeDefinition>> grouped = new LinkedHashMap<>();
         definitions.stream()
                 .sorted(Comparator
@@ -89,10 +101,9 @@ public class UpgradeDialog {
                         .thenComparing(UpgradeDefinition::id))
                 .forEach(definition -> grouped.computeIfAbsent(definition.category(), k -> new ArrayList<>()).add(definition));
         return grouped.keySet().stream()
-                .map(category -> CoreText.deserialize(
-                        "<dark_gray>---------- <gold><bold>"
-                                + category.displayName()
-                                + " Upgrades</bold> <dark_gray>----------"))
+                .map(category -> CoreText.deserialize(headerFormat
+                        .replace("{icon}", category.icon())
+                        .replace("{name}", category.displayName())))
                 .toList();
     }
 
@@ -124,6 +135,10 @@ public class UpgradeDialog {
         boolean maxed = nextLevel.isEmpty();
         boolean locked = definition.visibility() == UpgradeVisibility.LOCKED;
 
+        String buttonFormat = config.getUpgrades().getString("ui.layout.button-label");
+        if (buttonFormat == null || buttonFormat.isBlank()) {
+            buttonFormat = "{category} <white>{level}";
+        }
         String labelPrefix = maxed
                 ? CoreText.configString(config.getUpgrades(), "ui.buttons.maxed", "<gray>Maxed")
                 : definition.category().displayName();
@@ -131,17 +146,33 @@ public class UpgradeDialog {
                 .orElseGet(() -> definition.levels().isEmpty()
                         ? definition.id()
                         : definition.levels().getLast().displayName());
-        Component label = CoreText.deserialize(labelPrefix + " <white>" + levelName);
+        String labelText = buttonFormat
+                .replace("{category}", labelPrefix)
+                .replace("{level}", levelName);
+        Component label = CoreText.deserialize(labelText);
 
         String providerName = provider == null ? definition.providerId() : provider.displayName();
-        Component tooltip = Component.text(providerName + " / " + definition.id()
-                + (locked ? " (locked)" : maxed ? " (maxed)" : ""));
+        String status = locked ? " (locked)" : maxed ? " (maxed)" : "";
+
+        String tooltipFormat = config.getUpgrades().getString("ui.layout.tooltip");
+        if (tooltipFormat == null || tooltipFormat.isBlank()) {
+            tooltipFormat = "{provider} / {id}{status}";
+        }
+        String tooltipText = tooltipFormat
+                .replace("{provider}", providerName)
+                .replace("{id}", definition.id())
+                .replace("{status}", status);
+        Component tooltip = CoreText.deserialize(tooltipText);
 
         if (!maxed && nextLevel.isPresent()) {
             List<UpgradeRequirement> requirements = nextLevel.get().requirements();
             if (!requirements.isEmpty()) {
-                tooltip = tooltip.append(Component.newline())
-                        .append(Component.text("Cost: ", NamedTextColor.GRAY));
+                String costFormat = config.getUpgrades().getString("ui.layout.tooltip-cost");
+                if (costFormat == null || costFormat.isBlank()) {
+                    costFormat = "\n<gray>Cost: {requirements}";
+                }
+                Component costPrefix = CoreText.deserialize(costFormat.replace("{requirements}", ""));
+                tooltip = tooltip.append(costPrefix);
                 for (int i = 0; i < requirements.size(); i++) {
                     if (i > 0) {
                         tooltip = tooltip.append(Component.text(", ", NamedTextColor.GRAY));
@@ -162,7 +193,6 @@ public class UpgradeDialog {
         }
         return builder.build();
     }
-
 
     private void openConfirm(Player player, UpgradeViewRequest request, UpgradeDefinition definition,
                              int expectedCurrentLevel, String levelName) {
