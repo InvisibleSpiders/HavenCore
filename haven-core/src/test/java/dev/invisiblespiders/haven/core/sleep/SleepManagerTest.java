@@ -389,6 +389,38 @@ class SleepManagerTest {
     }
 
     @Test
+    void sendActionBar_sendsSkipPausedMessageInPausedState() {
+        UUID uuid = UUID.randomUUID();
+        when(world.getPlayers()).thenReturn(List.of(player1));
+        setupSurvivalPlayer(player1, uuid, false);
+        manager.worldStates.put("world", SleepManager.State.PAUSED);
+
+        manager.sendActionBarToWorld(world);
+
+        verify(player1).sendActionBar(any(Component.class));
+    }
+
+    @Test
+    void completeSkip_sendsSkipCompleteActionBar() {
+        when(world.getPlayers()).thenReturn(List.of(player1));
+        manager.worldStates.put("world", SleepManager.State.SKIPPING);
+
+        manager.completeSkip(world);
+
+        verify(player1).sendActionBar(any(Component.class));
+    }
+
+    @Test
+    void completeSkip_broadcastsSkipCompleteChat() {
+        when(world.getPlayers()).thenReturn(List.of(player1));
+        manager.worldStates.put("world", SleepManager.State.SKIPPING);
+
+        manager.completeSkip(world);
+
+        verify(player1).sendMessage(any(Component.class));
+    }
+
+    @Test
     void broadcastToWorld_sendsMessageToAllPlayers() {
         when(world.getPlayers()).thenReturn(List.of(player1, player2));
 

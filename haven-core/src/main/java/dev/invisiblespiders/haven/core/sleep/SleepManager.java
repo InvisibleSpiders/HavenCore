@@ -269,12 +269,20 @@ public class SleepManager implements HavenSleepService, Listener {
             }
         }
 
+        // Send skip-complete action bar before clearing state
+        String completeMsgTemplate = settings.messages().skipComplete();
+        if (completeMsgTemplate != null && !completeMsgTemplate.isBlank()) {
+            Component completeBar = MM.deserialize(completeMsgTemplate);
+            for (Player p : world.getPlayers()) {
+                p.sendActionBar(completeBar);
+            }
+        }
+
         worldStates.put(world.getName(), State.IDLE);
         sleepingPlayers.getOrDefault(world.getName(), Set.of()).clear();
         skippedWith.remove(world.getName());
         stopTickIfNotNeeded();
         eventBus.publish(new HavenSleepSkipCompleteEvent(world));
-        sendActionBarToWorld(world);
         broadcastToWorld(world, settings.messages().broadcastSkip());
     }
 
