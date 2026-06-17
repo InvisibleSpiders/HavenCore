@@ -36,11 +36,15 @@ public class SleepAdminCommand {
         if (world == null) return;
         if (!sleepManager.getSettings().worlds().contains(world.getName())) {
             sender.sendMessage(MM.deserialize(
-                "<red>'" + world.getName() + "' is not in the sleep module's world list."));
+                "<red>'" + MM.escapeTags(world.getName()) + "' is not in the sleep module's world list."));
             return;
         }
-        sleepManager.forceSkip(world);
-        sender.sendMessage(MM.deserialize("<green>Force-triggered night skip in " + world.getName() + "."));
+        boolean triggered = sleepManager.forceSkip(world);
+        if (triggered) {
+            sender.sendMessage(MM.deserialize("<green>Force-triggered night skip in " + MM.escapeTags(world.getName()) + "."));
+        } else {
+            sender.sendMessage(MM.deserialize("<yellow>No night skip needed — " + MM.escapeTags(world.getName()) + " is already day or skip is in progress."));
+        }
     }
 
     private void handleToggle(CommandSender sender, String[] args) {
@@ -48,12 +52,12 @@ public class SleepAdminCommand {
         if (world == null) return;
         if (!sleepManager.getSettings().worlds().contains(world.getName())) {
             sender.sendMessage(MM.deserialize(
-                "<red>'" + world.getName() + "' is not in the sleep module's world list."));
+                "<red>'" + MM.escapeTags(world.getName()) + "' is not in the sleep module's world list."));
             return;
         }
         boolean newState = sleepManager.toggle(world);
         sender.sendMessage(MM.deserialize(
-            "<green>Sleep module in " + world.getName()
+            "<green>Sleep module in " + MM.escapeTags(world.getName())
             + " is now " + (newState ? "<green>enabled" : "<red>disabled") + "<green>."));
     }
 
@@ -62,7 +66,7 @@ public class SleepAdminCommand {
         for (String worldName : sleepManager.getSettings().worlds()) {
             World world = plugin.getServer().getWorld(worldName);
             if (world == null) {
-                sender.sendMessage(MM.deserialize("  <red>" + worldName + " <dark_gray>[WORLD NOT LOADED]"));
+                sender.sendMessage(MM.deserialize("  <red>" + MM.escapeTags(worldName) + " <dark_gray>[WORLD NOT LOADED]"));
                 continue;
             }
             String state    = sleepManager.getState(world).name();
@@ -70,7 +74,7 @@ public class SleepAdminCommand {
             int active      = sleepManager.getActiveCount(world);
             boolean enabled = sleepManager.isEligible(world);
             sender.sendMessage(MM.deserialize(
-                "  <gray>" + worldName
+                "  <gray>" + MM.escapeTags(worldName)
                 + " <dark_gray>[" + state + "]"
                 + (enabled ? "" : " <red>[DISABLED]")
                 + " <gray>sleeping=<white>" + sleeping
@@ -91,7 +95,7 @@ public class SleepAdminCommand {
         }
         World world = plugin.getServer().getWorld(name);
         if (world == null) {
-            sender.sendMessage(MM.deserialize("<red>World not found: " + name));
+            sender.sendMessage(MM.deserialize("<red>World not found: " + MM.escapeTags(name)));
         }
         return world;
     }

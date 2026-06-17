@@ -286,11 +286,11 @@ public class SleepManager implements HavenSleepService, Listener {
         broadcastToWorld(world, settings.messages().broadcastSkip());
     }
 
-    public void forceSkip(World world) {
-        if (!isEligible(world)) return;
+    public boolean forceSkip(World world) {
+        if (!isEligible(world)) return false;
         long time = world.getTime();
-        if (time < 12541L || time >= DAWN_TICK) return;
-        if (worldStates.getOrDefault(world.getName(), State.IDLE) == State.SKIPPING) return;
+        if (time < 12541L || time >= DAWN_TICK) return false;
+        if (worldStates.getOrDefault(world.getName(), State.IDLE) == State.SKIPPING) return false;
         skippedWith.computeIfAbsent(world.getName(), k -> ConcurrentHashMap.newKeySet())
             .addAll(sleepingPlayers.getOrDefault(world.getName(), Set.of()));
         worldStates.put(world.getName(), State.SKIPPING);
@@ -299,6 +299,7 @@ public class SleepManager implements HavenSleepService, Listener {
         eventBus.publish(new HavenSleepSkipStartEvent(world, sleeping, active));
         broadcastToWorld(world, settings.messages().skipStart());
         ensureTickRunning();
+        return true;
     }
 
     public boolean toggle(World world) {

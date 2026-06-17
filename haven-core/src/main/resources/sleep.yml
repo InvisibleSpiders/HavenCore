@@ -1,5 +1,5 @@
 # HavenCore Sleep Configuration
-# Changes require restart (world.setSleepingIgnored is applied on enable).
+# Changes require restart (PLAYERS_SLEEPING_PERCENTAGE gamerule is applied on enable).
 
 worlds:
   - world          # Add additional world names here
