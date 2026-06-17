@@ -2,6 +2,7 @@ package dev.invisiblespiders.haven.core.sleep;
 
 import dev.invisiblespiders.haven.api.service.HavenAfkService;
 import dev.invisiblespiders.haven.api.service.HavenEventBus;
+import net.kyori.adventure.text.Component;
 import org.bukkit.GameMode;
 import org.bukkit.Server;
 import org.bukkit.World;
@@ -360,6 +361,41 @@ class SleepManagerTest {
         manager.completeSkip(world);
 
         assertThat(manager.sleepingPlayers.get("world")).isEmpty();
+    }
+
+    // ── Player feedback ───────────────────────────────────────────────────────
+
+    @Test
+    void sendActionBar_sendsFormattedMessageToWorldPlayers() {
+        UUID uuid = UUID.randomUUID();
+        when(world.getPlayers()).thenReturn(List.of(player1));
+        setupSurvivalPlayer(player1, uuid, false);
+        manager.sleepingPlayers.get("world").add(uuid);
+        manager.worldStates.put("world", SleepManager.State.WAITING);
+
+        manager.sendActionBarToWorld(world);
+
+        verify(player1).sendActionBar(any(Component.class));
+    }
+
+    @Test
+    void sendActionBar_sendsNothingForIdleState() {
+        when(world.getPlayers()).thenReturn(List.of(player1));
+        manager.worldStates.put("world", SleepManager.State.IDLE);
+
+        manager.sendActionBarToWorld(world);
+
+        verify(player1, never()).sendActionBar(any(Component.class));
+    }
+
+    @Test
+    void broadcastToWorld_sendsMessageToAllPlayers() {
+        when(world.getPlayers()).thenReturn(List.of(player1, player2));
+
+        manager.broadcastToWorld(world, "<green>Test broadcast");
+
+        verify(player1).sendMessage(any(Component.class));
+        verify(player2).sendMessage(any(Component.class));
     }
 
     // Helper

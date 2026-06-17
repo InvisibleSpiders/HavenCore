@@ -5,6 +5,7 @@ import dev.invisiblespiders.haven.api.event.HavenSleepSkipStartEvent;
 import dev.invisiblespiders.haven.api.service.HavenAfkService;
 import dev.invisiblespiders.haven.api.service.HavenEventBus;
 import dev.invisiblespiders.haven.api.service.HavenSleepService;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -304,7 +305,31 @@ public class SleepManager implements HavenSleepService, Listener {
         return newState;
     }
 
-    void sendActionBarToWorld(World world) { /* Task 7 */ }
+    void sendActionBarToWorld(World world) {
+        State state = worldStates.getOrDefault(world.getName(), State.IDLE);
+        String template = switch (state) {
+            case WAITING, SKIPPING -> settings.messages().sleeping();
+            case PAUSED -> settings.messages().skipPaused();
+            default -> null;
+        };
+        if (template == null) return;
 
-    void broadcastToWorld(World world, String miniMessage) { /* Task 7 */ }
+        int sleeping = getSleepingCount(world);
+        int active   = countActive(world);
+        String formatted = template
+            .replace("<sleeping>", String.valueOf(sleeping))
+            .replace("<active>",   String.valueOf(active));
+        Component bar = MM.deserialize(formatted);
+        for (Player p : world.getPlayers()) {
+            p.sendActionBar(bar);
+        }
+    }
+
+    void broadcastToWorld(World world, String miniMessage) {
+        if (miniMessage == null || miniMessage.isBlank()) return;
+        Component msg = MM.deserialize(miniMessage);
+        for (Player p : world.getPlayers()) {
+            p.sendMessage(msg);
+        }
+    }
 }
