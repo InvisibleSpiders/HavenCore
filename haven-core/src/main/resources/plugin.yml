@@ -74,6 +74,9 @@ permissions:
       haven.admin.upgrades: true
       haven.admin.rewards: true
       haven.admin.sleep: true
+      haven.admin.afk: true
+      haven.admin.channel: true
+      haven.admin.messages: true
   haven.admin.reload:
     description: Reload HavenCore configuration
     default: op
