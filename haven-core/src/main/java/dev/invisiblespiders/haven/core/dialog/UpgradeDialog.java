@@ -34,6 +34,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class UpgradeDialog {
+    private static final int CATEGORY_HEADER_WIDTH = 310;
 
     private final ConfigManager config;
     private final HavenUpgradeService upgrades;
@@ -49,9 +50,16 @@ public class UpgradeDialog {
                 .collect(Collectors.toMap(UpgradeProvider::id, Function.identity(), (a, b) -> a));
 
         boolean showHeaders = config.getUpgrades().getBoolean("ui.layout.show-headers", true);
+        String headerFormat = config.getUpgrades().getString("ui.layout.category-header");
+        if (headerFormat == null || headerFormat.isBlank()) {
+            headerFormat = "<dark_gray>---------- <gold><bold>{name} Upgrades</bold> <dark_gray>----------";
+        }
 
-        List<ActionButton> buttons = definitions.stream()
-                .map(definition -> buttonFor(player, request, definition, providers.get(definition.providerId())))
+        String finalHeaderFormat = headerFormat;
+        List<ActionButton> buttons = buttonLayoutEntries(definitions, showHeaders).stream()
+                .map(entry -> entry.header()
+                        ? categoryHeaderButton(entry.category(), finalHeaderFormat)
+                        : buttonFor(player, request, entry.definition(), providers.get(entry.definition().providerId())))
                 .toList();
 
         List<DialogBody> body = new ArrayList<>();
@@ -60,15 +68,6 @@ public class UpgradeDialog {
         } else {
             body.add(DialogBody.plainMessage(Component.text(
                     definitions.size() + " upgrade(s) available", NamedTextColor.GRAY)));
-            if (showHeaders) {
-                String headerFormat = config.getUpgrades().getString("ui.layout.category-header");
-                if (headerFormat == null || headerFormat.isBlank()) {
-                    headerFormat = "<dark_gray>---------- <gold><bold>{name} Upgrades</bold> <dark_gray>----------";
-                }
-                for (Component sectionLine : categorySectionLines(definitions, headerFormat)) {
-                    body.add(DialogBody.plainMessage(sectionLine));
-                }
-            }
         }
 
         ActionButton close = ActionButton.builder(Component.text("Close"))
@@ -88,11 +87,7 @@ public class UpgradeDialog {
         player.showDialog(dialog);
     }
 
-    static List<Component> categorySectionLines(List<UpgradeDefinition> definitions) {
-        return categorySectionLines(definitions, "<dark_gray>---------- <gold><bold>{name} Upgrades</bold> <dark_gray>----------");
-    }
-
-    static List<Component> categorySectionLines(List<UpgradeDefinition> definitions, String headerFormat) {
+    static List<ButtonLayoutEntry> buttonLayoutEntries(List<UpgradeDefinition> definitions, boolean showHeaders) {
         Map<UpgradeCategory, List<UpgradeDefinition>> grouped = new LinkedHashMap<>();
         definitions.stream()
                 .sorted(Comparator
@@ -100,11 +95,31 @@ public class UpgradeDialog {
                         .thenComparing(definition -> definition.category().displayName())
                         .thenComparing(UpgradeDefinition::id))
                 .forEach(definition -> grouped.computeIfAbsent(definition.category(), k -> new ArrayList<>()).add(definition));
-        return grouped.keySet().stream()
-                .map(category -> CoreText.deserialize(headerFormat
-                        .replace("{icon}", category.icon())
-                        .replace("{name}", category.displayName())))
-                .toList();
+        List<ButtonLayoutEntry> entries = new ArrayList<>();
+        for (Map.Entry<UpgradeCategory, List<UpgradeDefinition>> entry : grouped.entrySet()) {
+            if (showHeaders) {
+                entries.add(ButtonLayoutEntry.header(entry.getKey()));
+            }
+            entry.getValue().stream()
+                    .map(ButtonLayoutEntry::upgrade)
+                    .forEach(entries::add);
+        }
+        return entries;
+    }
+
+    record ButtonLayoutEntry(UpgradeCategory category, UpgradeDefinition definition) {
+        static ButtonLayoutEntry header(UpgradeCategory category) {
+            return new ButtonLayoutEntry(Objects.requireNonNull(category, "category"), null);
+        }
+
+        static ButtonLayoutEntry upgrade(UpgradeDefinition definition) {
+            Objects.requireNonNull(definition, "definition");
+            return new ButtonLayoutEntry(definition.category(), definition);
+        }
+
+        boolean header() {
+            return definition == null;
+        }
     }
 
     private List<UpgradeDefinition> visibleDefinitions(Player player, UpgradeViewRequest request) {
@@ -192,6 +207,15 @@ public class UpgradeDialog {
             }, multiUseOpts()));
         }
         return builder.build();
+    }
+
+    private ActionButton categoryHeaderButton(UpgradeCategory category, String headerFormat) {
+        String headerText = headerFormat
+                .replace("{icon}", category.icon())
+                .replace("{name}", category.displayName());
+        return ActionButton.builder(CoreText.deserialize(headerText))
+                .width(CATEGORY_HEADER_WIDTH)
+                .build();
     }
 
     private void openConfirm(Player player, UpgradeViewRequest request, UpgradeDefinition definition,

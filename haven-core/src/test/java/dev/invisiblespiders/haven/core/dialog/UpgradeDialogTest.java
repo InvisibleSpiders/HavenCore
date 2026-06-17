@@ -8,7 +8,6 @@ import dev.invisiblespiders.haven.api.upgrade.UpgradePurchaseResult;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeScope;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeVisibility;
 import dev.invisiblespiders.haven.core.config.ConfigManager;
-import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
@@ -55,24 +54,32 @@ class UpgradeDialogTest {
     }
 
     @Test
-    void categorySectionLinesRenderAsVisibleBodyText() {
+    void buttonLayoutEntriesInterleaveCategoryHeadersWithTheirUpgrades() {
+        UpgradeCategory bank = new UpgradeCategory("bank", "Bank", "EMERALD", 20);
         UpgradeCategory claims = new UpgradeCategory("claims", "Claims", "GRASS_BLOCK", 40);
         UpgradeCategory personal = new UpgradeCategory("personal", "Personal", "CLOCK", 10);
         List<UpgradeDefinition> definitions = List.of(
                 definition("test:claim-limit", claims),
                 definition("test:afk-timer", personal),
-                definition("test:more-claims", claims)
+                definition("test:bank-cap", bank),
+                definition("test:home-slots", personal)
         );
 
-        List<String> lines = UpgradeDialog.categorySectionLines(definitions).stream()
-                .map(PlainTextComponentSerializer.plainText()::serialize)
+        List<String> entries = UpgradeDialog.buttonLayoutEntries(definitions, true).stream()
+                .map(entry -> entry.header()
+                        ? "header:" + entry.category().displayName()
+                        : "upgrade:" + entry.definition().id())
                 .toList();
 
-        assertThat(lines).containsExactly(
-                "---------- Personal Upgrades ----------",
-                "---------- Claims Upgrades ----------"
+        assertThat(entries).containsExactly(
+                "header:Personal",
+                "upgrade:test:afk-timer",
+                "upgrade:test:home-slots",
+                "header:Bank",
+                "upgrade:test:bank-cap",
+                "header:Claims",
+                "upgrade:test:claim-limit"
         );
-        assertThat(lines).allMatch(line -> !line.isBlank());
     }
 
     private static UpgradeDefinition definition(String id, UpgradeCategory category) {
