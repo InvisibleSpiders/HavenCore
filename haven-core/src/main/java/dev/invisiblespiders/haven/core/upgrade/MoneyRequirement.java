@@ -4,6 +4,8 @@ import dev.invisiblespiders.haven.api.service.HavenEconomyService;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeContext;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeRequirement;
 import dev.invisiblespiders.haven.api.upgrade.UpgradeRequirementResult;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 
 import java.util.Objects;
 
@@ -42,5 +44,10 @@ public final class MoneyRequirement implements UpgradeRequirement {
     @Override
     public void refund(UpgradeContext context) {
         economy.deposit(context.targetPlayerId(), amount);
+    }
+
+    @Override
+    public Component describe() {
+        return Component.text(economy.format(amount), NamedTextColor.GOLD);
     }
 }
